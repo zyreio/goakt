@@ -349,6 +349,11 @@ func (pid *PID) IsRunning() bool {
 	return pid.running.Load()
 }
 
+// Returns interface to mailbox
+func (pid *PID) Mailbox() Mailbox {
+	return pid.mailbox
+}
+
 // ActorSystem returns the actor system
 func (pid *PID) ActorSystem() ActorSystem {
 	pid.fieldsLocker.RLock()
