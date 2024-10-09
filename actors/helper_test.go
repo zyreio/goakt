@@ -39,13 +39,13 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"go.uber.org/atomic"
 
-	"github.com/tochemey/goakt/v2/discovery"
-	"github.com/tochemey/goakt/v2/discovery/nats"
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/log"
-	"github.com/tochemey/goakt/v2/test/data/testpb"
-	testspb "github.com/tochemey/goakt/v2/test/data/testpb"
+	"github.com/zyreio/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/discovery/nats"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/test/data/testpb"
+	testspb "github.com/zyreio/goakt/v2/test/data/testpb"
 )
 
 // testActor is an actor that helps run various test scenarios

@@ -44,17 +44,17 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/tochemey/goakt/v2/address"
-	"github.com/tochemey/goakt/v2/discovery"
-	"github.com/tochemey/goakt/v2/hash"
-	"github.com/tochemey/goakt/v2/internal/cluster"
-	"github.com/tochemey/goakt/v2/internal/eventstream"
-	"github.com/tochemey/goakt/v2/internal/http"
-	"github.com/tochemey/goakt/v2/internal/internalpb"
-	"github.com/tochemey/goakt/v2/internal/internalpb/internalpbconnect"
-	"github.com/tochemey/goakt/v2/internal/tcp"
-	"github.com/tochemey/goakt/v2/internal/types"
-	"github.com/tochemey/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/address"
+	"github.com/zyreio/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/hash"
+	"github.com/zyreio/goakt/v2/internal/cluster"
+	"github.com/zyreio/goakt/v2/internal/eventstream"
+	"github.com/zyreio/goakt/v2/internal/http"
+	"github.com/zyreio/goakt/v2/internal/internalpb"
+	"github.com/zyreio/goakt/v2/internal/internalpb/internalpbconnect"
+	"github.com/zyreio/goakt/v2/internal/tcp"
+	"github.com/zyreio/goakt/v2/internal/types"
+	"github.com/zyreio/goakt/v2/log"
 )
 
 // ActorSystem defines the contract of an actor system

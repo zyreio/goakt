@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/prototext"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/test/data/testpb"
+	"github.com/zyreio/goakt/v2/actors"
+	"github.com/zyreio/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/test/data/testpb"
 )
 
 func TestTestProbe(t *testing.T) {

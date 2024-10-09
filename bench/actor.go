@@ -27,9 +27,9 @@ package bench
 import (
 	"context"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/bench/benchmarkpb"
-	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/actors"
+	"github.com/zyreio/goakt/v2/bench/benchmarkpb"
+	"github.com/zyreio/goakt/v2/goaktpb"
 )
 
 type Benchmarker struct {

@@ -27,8 +27,8 @@ package actors
 import (
 	"time"
 
-	"github.com/tochemey/goakt/v2/internal/eventstream"
-	"github.com/tochemey/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/internal/eventstream"
+	"github.com/zyreio/goakt/v2/log"
 )
 
 // pidOption represents the pid

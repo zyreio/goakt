@@ -34,8 +34,8 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/validation"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/validation"
 )
 
 // protocol defines the Go-Akt addressing protocol

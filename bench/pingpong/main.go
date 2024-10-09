@@ -33,11 +33,11 @@ import (
 
 	"go.uber.org/atomic"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/bench/benchmarkpb"
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/actors"
+	"github.com/zyreio/goakt/v2/bench/benchmarkpb"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/log"
 )
 
 func main() {

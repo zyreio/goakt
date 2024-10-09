@@ -32,10 +32,10 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/cluster"
-	"github.com/tochemey/goakt/v2/internal/internalpb"
-	"github.com/tochemey/goakt/v2/internal/slice"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/cluster"
+	"github.com/zyreio/goakt/v2/internal/internalpb"
+	"github.com/zyreio/goakt/v2/internal/slice"
 )
 
 // redistribute is used when cluster topology changes particularly

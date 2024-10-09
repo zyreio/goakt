@@ -33,8 +33,8 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"go.uber.org/atomic"
 
-	"github.com/tochemey/goakt/v2/discovery"
-	"github.com/tochemey/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/internal/lib"
 )
 
 func TestDiscovery(t *testing.T) {

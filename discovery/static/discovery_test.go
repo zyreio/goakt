@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/discovery"
 )
 
 func TestDiscovery(t *testing.T) {

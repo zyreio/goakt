@@ -31,8 +31,8 @@ import (
 	"reflect"
 	"sync/atomic"
 
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/log"
 )
 
 // RouterOption is the interface that applies a configuration option.

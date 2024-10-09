@@ -29,7 +29,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/goaktpb"
 )
 
 // ReceiveFunc is a message handling placeholder

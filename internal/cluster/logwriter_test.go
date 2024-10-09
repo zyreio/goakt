@@ -32,7 +32,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tochemey/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/log"
 )
 
 func TestLogWriter(t *testing.T) {

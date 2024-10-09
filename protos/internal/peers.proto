@@ -4,7 +4,7 @@ package internalpb;
 
 import "internal/actor.proto";
 
-option go_package = "github.com/tochemey/goakt/v2/internal/internalpb;internalpb";
+option go_package = "github.com/zyreio/goakt/v2/internal/internalpb;internalpb";
 
 // PeersSync is used to share a created/ restarted actor
 // on a given node to his peers when cluster is enabled

@@ -36,14 +36,14 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/address"
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/http"
-	"github.com/tochemey/goakt/v2/internal/internalpb"
-	"github.com/tochemey/goakt/v2/internal/internalpb/internalpbconnect"
-	"github.com/tochemey/goakt/v2/internal/types"
-	"github.com/tochemey/goakt/v2/internal/validation"
+	"github.com/zyreio/goakt/v2/actors"
+	"github.com/zyreio/goakt/v2/address"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/http"
+	"github.com/zyreio/goakt/v2/internal/internalpb"
+	"github.com/zyreio/goakt/v2/internal/internalpb/internalpbconnect"
+	"github.com/zyreio/goakt/v2/internal/types"
+	"github.com/zyreio/goakt/v2/internal/validation"
 )
 
 // Client connects to af Go-Akt nodes.

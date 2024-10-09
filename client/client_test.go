@@ -36,14 +36,14 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/discovery"
-	"github.com/tochemey/goakt/v2/discovery/nats"
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/log"
-	"github.com/tochemey/goakt/v2/test/data/testpb"
-	testspb "github.com/tochemey/goakt/v2/test/data/testpb"
+	"github.com/zyreio/goakt/v2/actors"
+	"github.com/zyreio/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/discovery/nats"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/test/data/testpb"
+	testspb "github.com/zyreio/goakt/v2/test/data/testpb"
 )
 
 func TestClient(t *testing.T) {

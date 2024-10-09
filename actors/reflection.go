@@ -27,7 +27,7 @@ package actors
 import (
 	"reflect"
 
-	"github.com/tochemey/goakt/v2/internal/types"
+	"github.com/zyreio/goakt/v2/internal/types"
 )
 
 // reflection helps create an instance dynamically

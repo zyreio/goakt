@@ -36,12 +36,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/tochemey/goakt/v2/address"
-	"github.com/tochemey/goakt/v2/goaktpb"
-	"github.com/tochemey/goakt/v2/internal/internalpb"
-	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/log"
-	"github.com/tochemey/goakt/v2/test/data/testpb"
+	"github.com/zyreio/goakt/v2/address"
+	"github.com/zyreio/goakt/v2/goaktpb"
+	"github.com/zyreio/goakt/v2/internal/internalpb"
+	"github.com/zyreio/goakt/v2/internal/lib"
+	"github.com/zyreio/goakt/v2/log"
+	"github.com/zyreio/goakt/v2/test/data/testpb"
 )
 
 func TestAsk(t *testing.T) {

@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/zyreio/goakt/v2/discovery"
 )
 
 const (

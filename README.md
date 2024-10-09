@@ -84,7 +84,7 @@ This framework has been designed:
 ## Installation
 
 ```bash
-go get github.com/tochemey/goakt/v2
+go get github.com/zyreio/goakt/v2
 ```
 
 ## Versioning
@@ -117,7 +117,7 @@ The fundamental building blocks of Go-Akt are actors.
 - Every actor in Go-Akt:
   - has a process id [`PID`](./actors/pid.go). Via the process id any allowable action can be executed by the
     actor.
-  - has a lifecycle via the following methods: [`PreStart`](./actors/actor.go), [`PostStop`](./actors/actor.go). 
+  - has a lifecycle via the following methods: [`PreStart`](./actors/actor.go), [`PostStop`](./actors/actor.go).
       - `PreStart` hook is used to initialise actor state. It is like the actor constructor.
       - `PostStop` hook is used to clean up resources used by the Actor. It is like the actor destructor.
     It means it can live and die like any other process.
@@ -129,7 +129,7 @@ The fundamental building blocks of Go-Akt are actors.
     fashion) and `Tell`, `RemoteTell`(fire-and-forget fashion) methods
   - stop (child) actors via their process id [`PID`](./actors/pid.go)
   - watch/unwatch (child) actors via their process id [`PID`](./actors/pid.go) `Watch` and `UnWatch` methods
-  - supervise the failure behavior of (child) actors. 
+  - supervise the failure behavior of (child) actors.
   - remotely lookup for an actor on another node via their process id [`PID`](./actors/pid.go) `RemoteLookup`.
     This
     allows it to send messages remotely via `RemoteAsk` or `RemoteTell` methods
@@ -175,7 +175,7 @@ ActorSystem has the following characteristics:
 - Concurrency and Parallelism - Multiple actors can be managed and execute their tasks independently and
   concurrently. This helps utilize multicore processors efficiently.
 - Location Transparency - The physical location of actors is abstracted when cluster mode is enabled. Remote actors can be accessed via their
-  address once _remoting_ is enabled. 
+  address once _remoting_ is enabled.
 - Fault Tolerance and Supervision - Set during the creation of the actor system.
 - Actor Addressing - Every actor in the ActorSystem has an address.
 
@@ -453,7 +453,7 @@ To get the kubernetes discovery working as expected, the following pod labels ne
 ```go
 package main
 
-import "github.com/tochemey/goakt/v2/discovery/kubernetes"
+import "github.com/zyreio/goakt/v2/discovery/kubernetes"
 
 const (
     namespace          = "default"
@@ -537,7 +537,7 @@ To use the NATS discovery provider one needs to provide the following:
 ```go
 package main
 
-import "github.com/tochemey/goakt/v2/discovery/nats"
+import "github.com/zyreio/goakt/v2/discovery/nats"
 
 const (
     natsServerAddr   = "nats://127.0.0.1:4248"
@@ -576,7 +576,7 @@ To use the DNS discovery provider one needs to provide the following:
 ```go
 package main
 
-import "github.com/tochemey/goakt/v2/discovery/dnssd"
+import "github.com/zyreio/goakt/v2/discovery/dnssd"
 
 const domainName = "accounts"
 
@@ -601,7 +601,7 @@ The address of each host is the form of `host:port` where `port` is the gossip p
 ```go
 package main
 
-import "github.com/tochemey/goakt/v2/discovery/static"
+import "github.com/zyreio/goakt/v2/discovery/static"
 
 // define the discovery configuration
 config := static.Config{
