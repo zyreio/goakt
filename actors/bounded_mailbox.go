@@ -56,7 +56,7 @@ func NewBoundedMailbox(cap int) *BoundedMailbox {
 // Enqueue places the given value in the mailbox
 // This will return an error when the mailbox is full
 func (mailbox *BoundedMailbox) Enqueue(msg *ReceiveContext) error {
-	if mailbox.isFull() {
+	if mailbox.IsFull() {
 		return ErrFullMailbox
 	}
 
@@ -101,7 +101,7 @@ func (mailbox *BoundedMailbox) Len() int64 {
 	return int64(length)
 }
 
-func (mailbox *BoundedMailbox) isFull() bool {
+func (mailbox *BoundedMailbox) IsFull() bool {
 	mailbox.lock.Lock()
 	full := mailbox.full
 	mailbox.lock.Unlock()
