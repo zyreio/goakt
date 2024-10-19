@@ -22,29 +22,33 @@
  * SOFTWARE.
  */
 
-package hash
+package testkit
 
 import (
-	"github.com/zeebo/xxh3"
+	"os"
+
+	"github.com/tochemey/goakt/v2/log"
 )
 
-// Hasher defines the hashcode generator interface.
-// This help for actors partitioning when cluster mode is enabled
-type Hasher interface {
-	// HashCode is responsible for generating unsigned, 64-bit hash of provided byte slice
-	HashCode(key []byte) uint64
+// Option is the interface that applies a Testkit option.
+type Option interface {
+	// Apply sets the Option value of a config.
+	Apply(kit *TestKit)
 }
 
-type defaultHasher struct{}
+// enforce compilation error
+var _ Option = OptionFunc(nil)
 
-var _ Hasher = defaultHasher{}
+// OptionFunc implements the Option interface.
+type OptionFunc func(kit *TestKit)
 
-// HashCode implementation
-func (x defaultHasher) HashCode(key []byte) uint64 {
-	return xxh3.Hash(key)
+func (f OptionFunc) Apply(kit *TestKit) {
+	f(kit)
 }
 
-// DefaultHasher returns the default hasher
-func DefaultHasher() Hasher {
-	return &defaultHasher{}
+// WithLogging sets the Testkit logger
+func WithLogging(level log.Level) Option {
+	return OptionFunc(func(kit *TestKit) {
+		kit.logger = log.New(level, os.Stderr)
+	})
 }
