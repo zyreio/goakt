@@ -27,8 +27,8 @@ package actors
 import (
 	"context"
 
-	"github.com/zyreio/goakt/v2/goaktpb"
-	"github.com/zyreio/goakt/v2/log"
+	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/tochemey/goakt/v2/log"
 )
 
 // systemSupervisor is an actor which roles is to handle

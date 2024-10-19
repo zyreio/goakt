@@ -25,8 +25,8 @@
 package actors
 
 import (
-	"github.com/zyreio/goakt/v2/discovery"
-	"github.com/zyreio/goakt/v2/internal/validation"
+	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/tochemey/goakt/v2/internal/validation"
 )
 
 // defaultKinds defines the default system kinds

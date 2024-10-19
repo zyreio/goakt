@@ -1,4 +1,4 @@
-module github.com/zyreio/goakt/v2
+module github.com/tochemey/goakt/v2
 
 go 1.22.0
 

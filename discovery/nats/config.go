@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zyreio/goakt/v2/internal/validation"
+	"github.com/tochemey/goakt/v2/internal/validation"
 )
 
 // Config represents the nats provider discoConfig

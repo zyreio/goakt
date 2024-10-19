@@ -39,14 +39,14 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/zyreio/goakt/v2/address"
-	"github.com/zyreio/goakt/v2/goaktpb"
-	"github.com/zyreio/goakt/v2/internal/lib"
-	"github.com/zyreio/goakt/v2/internal/types"
-	"github.com/zyreio/goakt/v2/log"
-	clustermocks "github.com/zyreio/goakt/v2/mocks/cluster"
-	testkit "github.com/zyreio/goakt/v2/mocks/discovery"
-	"github.com/zyreio/goakt/v2/test/data/testpb"
+	"github.com/tochemey/goakt/v2/address"
+	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/tochemey/goakt/v2/internal/lib"
+	"github.com/tochemey/goakt/v2/internal/types"
+	"github.com/tochemey/goakt/v2/log"
+	clustermocks "github.com/tochemey/goakt/v2/mocks/cluster"
+	testkit "github.com/tochemey/goakt/v2/mocks/discovery"
+	"github.com/tochemey/goakt/v2/test/data/testpb"
 )
 
 // nolint

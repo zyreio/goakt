@@ -33,8 +33,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/zyreio/goakt/v2/internal/lib"
-	"github.com/zyreio/goakt/v2/test/data/testpb"
+	"github.com/tochemey/goakt/v2/internal/lib"
+	"github.com/tochemey/goakt/v2/test/data/testpb"
 )
 
 func TestRedistribution(t *testing.T) {

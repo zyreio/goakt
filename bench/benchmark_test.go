@@ -30,10 +30,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zyreio/goakt/v2/actors"
-	"github.com/zyreio/goakt/v2/bench/benchmarkpb"
-	"github.com/zyreio/goakt/v2/internal/lib"
-	"github.com/zyreio/goakt/v2/log"
+	"github.com/tochemey/goakt/v2/actors"
+	"github.com/tochemey/goakt/v2/bench/benchmarkpb"
+	"github.com/tochemey/goakt/v2/internal/lib"
+	"github.com/tochemey/goakt/v2/log"
 )
 
 const receivingTimeout = 100 * time.Millisecond

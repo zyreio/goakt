@@ -35,8 +35,8 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"go.uber.org/atomic"
 
-	"github.com/zyreio/goakt/v2/discovery"
-	"github.com/zyreio/goakt/v2/log"
+	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/tochemey/goakt/v2/log"
 )
 
 func startNatsServer(t *testing.T) *natsserver.Server {

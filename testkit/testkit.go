@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zyreio/goakt/v2/actors"
-	"github.com/zyreio/goakt/v2/log"
+	"github.com/tochemey/goakt/v2/actors"
+	"github.com/tochemey/goakt/v2/log"
 )
 
 // TestKit defines actor test kit

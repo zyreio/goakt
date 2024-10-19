@@ -37,13 +37,13 @@ import (
 	"github.com/travisjeffery/go-dynaport"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/zyreio/goakt/v2/address"
-	"github.com/zyreio/goakt/v2/goaktpb"
-	"github.com/zyreio/goakt/v2/internal/eventstream"
-	"github.com/zyreio/goakt/v2/internal/lib"
-	"github.com/zyreio/goakt/v2/log"
-	"github.com/zyreio/goakt/v2/test/data/testpb"
-	testspb "github.com/zyreio/goakt/v2/test/data/testpb"
+	"github.com/tochemey/goakt/v2/address"
+	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/tochemey/goakt/v2/internal/eventstream"
+	"github.com/tochemey/goakt/v2/internal/lib"
+	"github.com/tochemey/goakt/v2/log"
+	"github.com/tochemey/goakt/v2/test/data/testpb"
+	testspb "github.com/tochemey/goakt/v2/test/data/testpb"
 )
 
 const (

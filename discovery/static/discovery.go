@@ -25,7 +25,7 @@
 package static
 
 import (
-	"github.com/zyreio/goakt/v2/discovery"
+	"github.com/tochemey/goakt/v2/discovery"
 )
 
 // Discovery represents the static discovery provider

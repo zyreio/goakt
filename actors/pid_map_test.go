@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/travisjeffery/go-dynaport"
 
-	"github.com/zyreio/goakt/v2/address"
+	"github.com/tochemey/goakt/v2/address"
 )
 
 func TestPIDMap(t *testing.T) {

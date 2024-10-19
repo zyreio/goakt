@@ -7,7 +7,7 @@
 package internalpb
 
 import (
-	goaktpb "github.com/zyreio/goakt/v2/goaktpb"
+	goaktpb "github.com/tochemey/goakt/v2/goaktpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

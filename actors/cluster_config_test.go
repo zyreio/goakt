@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	testkit "github.com/zyreio/goakt/v2/mocks/discovery"
+	testkit "github.com/tochemey/goakt/v2/mocks/discovery"
 )
 
 func TestClusterConfig(t *testing.T) {

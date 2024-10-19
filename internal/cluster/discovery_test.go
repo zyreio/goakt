@@ -32,9 +32,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/travisjeffery/go-dynaport"
 
-	"github.com/zyreio/goakt/v2/discovery"
-	"github.com/zyreio/goakt/v2/log"
-	testkit "github.com/zyreio/goakt/v2/mocks/discovery"
+	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/tochemey/goakt/v2/log"
+	testkit "github.com/tochemey/goakt/v2/mocks/discovery"
 )
 
 func TestDiscoveryProvider(t *testing.T) {
