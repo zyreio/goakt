@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,16 +64,14 @@ func (x *actorSystem) redistribute(ctx context.Context, event *cluster.Event) er
 		return err
 	}
 
-	x.peersCacheMu.RLock()
-	bytea, ok := x.peersCache[nodeLeft.GetAddress()]
-	x.peersCacheMu.RUnlock()
+	value, ok := x.peersCache.Load(nodeLeft.GetAddress())
 	if !ok {
 		x.logger.Errorf("peer %s not found", nodeLeft.GetAddress())
 		return ErrPeerNotFound
 	}
 
 	peerState := new(internalpb.PeerState)
-	_ = proto.Unmarshal(bytea, peerState)
+	_ = proto.Unmarshal(value.([]byte), peerState)
 
 	actorsCount := len(peerState.GetActors())
 
@@ -103,63 +101,64 @@ func (x *actorSystem) redistribute(ctx context.Context, event *cluster.Event) er
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	eg.Go(func() error {
-		for _, actor := range leaderActors {
-			// never redistribute system actors
-			if isSystemName(actor.GetActorAddress().GetName()) {
-				continue
-			}
-
-			x.logger.Debugf("re-creating actor=[(%s) of type (%s)]", actor.GetActorAddress().GetName(), actor.GetActorType())
-			iactor, err := x.reflection.ActorFrom(actor.GetActorType())
-			if err != nil {
-				x.logger.Errorf("failed to create actor=[(%s) of type (%s)]: %v", actor.GetActorAddress().GetName(), actor.GetActorType(), err)
-				return err
-			}
-
-			if _, err = x.Spawn(ctx, actor.GetActorAddress().GetName(), iactor); err != nil {
-				x.logger.Errorf("failed to spawn actor=[(%s) of type (%s)]: %v", actor.GetActorAddress().GetName(), actor.GetActorType(), err)
-				return err
-			}
-
-			x.logger.Debugf("actor=[(%s) of type (%s)] successfully re-created", actor.GetActorAddress().GetName(), actor.GetActorType())
-		}
-		return nil
-	})
-
-	eg.Go(func() error {
-		// defensive programming
-		if len(chunks) == 0 {
-			return nil
-		}
-
-		for i := 1; i < len(chunks); i++ {
-			actors := chunks[i]
-			peer := peers[i-1]
-
-			x.peersCacheMu.RLock()
-			bytea := x.peersCache[net.JoinHostPort(peer.Host, strconv.Itoa(peer.Port))]
-			x.peersCacheMu.RUnlock()
-
-			state := new(internalpb.PeerState)
-			_ = proto.Unmarshal(bytea, state)
-
-			for _, actor := range actors {
+	eg.Go(
+		func() error {
+			for _, actor := range leaderActors {
 				// never redistribute system actors
 				if isSystemName(actor.GetActorAddress().GetName()) {
 					continue
 				}
 
 				x.logger.Debugf("re-creating actor=[(%s) of type (%s)]", actor.GetActorAddress().GetName(), actor.GetActorType())
-				if err := RemoteSpawn(ctx, state.GetHost(), int(state.GetRemotingPort()), actor.GetActorAddress().GetName(), actor.GetActorType()); err != nil {
-					x.logger.Error(err)
+				iactor, err := x.reflection.ActorFrom(actor.GetActorType())
+				if err != nil {
+					x.logger.Errorf("failed to create actor=[(%s) of type (%s)]: %v", actor.GetActorAddress().GetName(), actor.GetActorType(), err)
 					return err
 				}
+
+				if _, err = x.Spawn(ctx, actor.GetActorAddress().GetName(), iactor); err != nil {
+					x.logger.Errorf("failed to spawn actor=[(%s) of type (%s)]: %v", actor.GetActorAddress().GetName(), actor.GetActorType(), err)
+					return err
+				}
+
 				x.logger.Debugf("actor=[(%s) of type (%s)] successfully re-created", actor.GetActorAddress().GetName(), actor.GetActorType())
 			}
-		}
-		return nil
-	})
+			return nil
+		},
+	)
+
+	eg.Go(
+		func() error {
+			// defensive programming
+			if len(chunks) == 0 {
+				return nil
+			}
+
+			for i := 1; i < len(chunks); i++ {
+				actors := chunks[i]
+				peer := peers[i-1]
+
+				value, _ = x.peersCache.Load(net.JoinHostPort(peer.Host, strconv.Itoa(peer.Port)))
+				peerState := new(internalpb.PeerState)
+				_ = proto.Unmarshal(value.([]byte), peerState)
+
+				for _, actor := range actors {
+					// never redistribute system actors
+					if isSystemName(actor.GetActorAddress().GetName()) {
+						continue
+					}
+
+					x.logger.Debugf("re-creating actor=[(%s) of type (%s)]", actor.GetActorAddress().GetName(), actor.GetActorType())
+					if err := x.remoting.RemoteSpawn(ctx, peerState.GetHost(), int(peerState.GetRemotingPort()), actor.GetActorAddress().GetName(), actor.GetActorType()); err != nil {
+						x.logger.Error(err)
+						return err
+					}
+					x.logger.Debugf("actor=[(%s) of type (%s)] successfully re-created", actor.GetActorAddress().GetName(), actor.GetActorType())
+				}
+			}
+			return nil
+		},
+	)
 
 	return eg.Wait()
 }

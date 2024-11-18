@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -79,9 +79,11 @@ func NewServer(ctx context.Context, host string, port int, mux *http.ServeMux) *
 		IdleTimeout: 1200 * time.Second,
 		// For gRPC clients, it's convenient to support HTTP/2 without TLS. You can
 		// avoid x/net/http2 by using http.ListenAndServeTLS.
-		Handler: h2c.NewHandler(mux, &http2.Server{
-			IdleTimeout: 1200 * time.Second,
-		}),
+		Handler: h2c.NewHandler(
+			mux, &http2.Server{
+				IdleTimeout: 1200 * time.Second,
+			},
+		),
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},

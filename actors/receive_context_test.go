@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -214,7 +214,7 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pid2)
 
-		reply := context.Ask(pid2, new(testpb.TestReply))
+		reply := context.Ask(pid2, new(testpb.TestReply), time.Minute)
 		require.NotNil(t, reply)
 		expected := new(testpb.Reply)
 		assert.True(t, proto.Equal(expected, reply))
@@ -257,7 +257,7 @@ func TestReceiveContext(t *testing.T) {
 		lib.Pause(time.Second)
 		assert.NoError(t, pid2.Shutdown(ctx))
 
-		context.Ask(pid2, new(testpb.TestReply))
+		context.Ask(pid2, new(testpb.TestReply), time.Minute)
 		require.Error(t, context.getError())
 
 		lib.Pause(time.Second)
@@ -274,7 +274,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -296,11 +297,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
 
@@ -315,17 +318,19 @@ func TestReceiveContext(t *testing.T) {
 		// get the address of the exchanger actor one
 		addr1 := context.RemoteLookup(host, remotingPort, actorName2)
 		// send the message to t exchanger actor one using remote messaging
-		reply := context.RemoteAsk(address.From(addr1), new(testpb.TestReply))
+		reply := context.RemoteAsk(address.From(addr1), new(testpb.TestReply), time.Minute)
 		// perform some assertions
 		require.NotNil(t, reply)
 		require.True(t, reply.MessageIs(new(testpb.Reply)))
 
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed RemoteAsk", func(t *testing.T) {
 		// create the context
@@ -338,7 +343,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -357,11 +363,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -374,19 +382,23 @@ func TestReceiveContext(t *testing.T) {
 			self:    pid1,
 		}
 
-		context.RemoteAsk(address.From(&goaktpb.Address{
-			Host: "127.0.0.1",
-			Port: int32(remotingPort),
-			Name: actorName2,
-			Id:   "",
-		}), new(testpb.TestReply))
+		context.RemoteAsk(address.From(
+			&goaktpb.Address{
+				Host: "127.0.0.1",
+				Port: int32(remotingPort),
+				Name: actorName2,
+				Id:   "",
+			},
+		), new(testpb.TestReply), time.Minute)
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful RemoteTell", func(t *testing.T) {
 		// create the context
@@ -399,7 +411,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -422,11 +435,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -446,10 +461,12 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed RemoteTell", func(t *testing.T) {
 		// create the context
@@ -462,7 +479,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -481,11 +499,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -499,19 +519,23 @@ func TestReceiveContext(t *testing.T) {
 		}
 
 		// send the message to the exchanger actor one using remote messaging
-		context.RemoteTell(address.From(&goaktpb.Address{
-			Host: "127.0.0.1",
-			Port: int32(remotingPort),
-			Name: actorName2,
-			Id:   "",
-		}), new(testpb.TestRemoteSend))
+		context.RemoteTell(address.From(
+			&goaktpb.Address{
+				Host: "127.0.0.1",
+				Port: int32(remotingPort),
+				Name: actorName2,
+				Id:   "",
+			},
+		), new(testpb.TestRemoteSend))
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With address not found RemoteLookup", func(t *testing.T) {
 		// create the context
@@ -524,7 +548,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -543,11 +568,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -564,10 +591,12 @@ func TestReceiveContext(t *testing.T) {
 
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed RemoteLookup", func(t *testing.T) {
 		// create the context
@@ -580,7 +609,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 		)
@@ -598,11 +628,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -618,10 +650,12 @@ func TestReceiveContext(t *testing.T) {
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful Shutdown", func(t *testing.T) {
 		ctx := context.TODO()
@@ -657,11 +691,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -684,9 +719,11 @@ func TestReceiveContext(t *testing.T) {
 		require.NotNil(t, actual)
 		assert.Equal(t, child.Address().String(), actual.Address().String())
 
-		t.Cleanup(func() {
-			receiveCtx.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				receiveCtx.Shutdown()
+			},
+		)
 	})
 	t.Run("With failed SpawnChild", func(t *testing.T) {
 		ctx := context.TODO()
@@ -694,11 +731,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -724,11 +762,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -752,9 +791,11 @@ func TestReceiveContext(t *testing.T) {
 
 		context.Child(name)
 		require.Error(t, context.getError())
-		t.Cleanup(func() {
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With dead parent Child", func(t *testing.T) {
 		ctx := context.TODO()
@@ -762,11 +803,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -790,9 +832,11 @@ func TestReceiveContext(t *testing.T) {
 
 		context.Child(name)
 		require.Error(t, context.getError())
-		t.Cleanup(func() {
-			require.NoError(t, child.Shutdown(ctx))
-		})
+		t.Cleanup(
+			func() {
+				require.NoError(t, child.Shutdown(ctx))
+			},
+		)
 	})
 	t.Run("With successful Stop", func(t *testing.T) {
 		ctx := context.TODO()
@@ -800,11 +844,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -828,9 +873,11 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, context.getError())
 		lib.Pause(time.Second)
 		assert.Empty(t, context.Children())
-		t.Cleanup(func() {
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With child actor Stop freeing up parent link", func(t *testing.T) {
 		ctx := context.TODO()
@@ -838,11 +885,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -870,9 +918,11 @@ func TestReceiveContext(t *testing.T) {
 
 		lib.Pause(time.Second)
 		assert.Empty(t, context.Children())
-		t.Cleanup(func() {
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With failed Stop: child not defined", func(t *testing.T) {
 		ctx := context.TODO()
@@ -880,11 +930,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -901,9 +952,11 @@ func TestReceiveContext(t *testing.T) {
 		// stop the child actor
 		context.Stop(NoSender)
 		require.Error(t, context.getError())
-		t.Cleanup(func() {
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With failed Stop: parent is dead", func(t *testing.T) {
 		ctx := context.TODO()
@@ -912,11 +965,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Test", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -950,11 +1004,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -969,21 +1024,24 @@ func TestReceiveContext(t *testing.T) {
 
 		// create the child actor
 		childPath := address.New("child", "sys", "host", ports[0])
-		child, err := newPID(ctx, childPath,
+		child, err := newPID(
+			ctx, childPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 
 		// stop the child actor
 		context.Stop(child)
 		require.Error(t, context.getError())
-		t.Cleanup(func() {
-			context.Shutdown()
-			assert.NoError(t, child.Shutdown(ctx))
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+				assert.NoError(t, child.Shutdown(ctx))
+			},
+		)
 	})
 	t.Run("With Stop when child is already stopped", func(t *testing.T) {
 		ctx := context.TODO()
@@ -991,11 +1049,12 @@ func TestReceiveContext(t *testing.T) {
 		actorPath := address.New("Parent", "sys", "host", ports[0])
 
 		// create the parent actor
-		parent, err := newPID(ctx, actorPath,
+		parent, err := newPID(
+			ctx, actorPath,
 			newTestSupervisor(),
 			withInitMaxRetries(1),
 			withCustomLogger(log.DiscardLogger),
-			withAskTimeout(replyTimeout))
+		)
 
 		require.NoError(t, err)
 		assert.NotNil(t, parent)
@@ -1021,9 +1080,11 @@ func TestReceiveContext(t *testing.T) {
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 		assert.Empty(t, context.Children())
-		t.Cleanup(func() {
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With failed Shutdown", func(t *testing.T) {
 		ctx := context.TODO()
@@ -1164,11 +1225,13 @@ func TestReceiveContext(t *testing.T) {
 
 		assert.EqualValues(t, 1, len(consumer.Topics()))
 
-		t.Cleanup(func() {
-			// shutdown the consumer
-			consumer.Shutdown()
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				// shutdown the consumer
+				consumer.Shutdown()
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With Unhandled with a sender", func(t *testing.T) {
 		ctx := context.TODO()
@@ -1235,12 +1298,14 @@ func TestReceiveContext(t *testing.T) {
 
 		assert.EqualValues(t, 1, len(consumer.Topics()))
 
-		t.Cleanup(func() {
-			require.NoError(t, pid2.Shutdown(ctx))
-			// shutdown the consumer
-			consumer.Shutdown()
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				require.NoError(t, pid2.Shutdown(ctx))
+				// shutdown the consumer
+				consumer.Shutdown()
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With Unhandled with system messages", func(t *testing.T) {
 		ctx := context.TODO()
@@ -1296,11 +1361,13 @@ func TestReceiveContext(t *testing.T) {
 
 		assert.EqualValues(t, 1, len(consumer.Topics()))
 
-		t.Cleanup(func() {
-			// shutdown the consumer
-			consumer.Shutdown()
-			context.Shutdown()
-		})
+		t.Cleanup(
+			func() {
+				// shutdown the consumer
+				consumer.Shutdown()
+				context.Shutdown()
+			},
+		)
 	})
 	t.Run("With successful BatchTell", func(t *testing.T) {
 		ctx := context.TODO()
@@ -1454,7 +1521,7 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pid2)
 
-		replies := context.BatchAsk(pid2, new(testpb.TestReply), new(testpb.TestReply))
+		replies := context.BatchAsk(pid2, []proto.Message{new(testpb.TestReply), new(testpb.TestReply)}, time.Minute)
 		require.NotNil(t, replies)
 		require.Len(t, replies, 2)
 		for reply := range replies {
@@ -1502,7 +1569,7 @@ func TestReceiveContext(t *testing.T) {
 		lib.Pause(time.Second)
 		assert.NoError(t, pid2.Shutdown(ctx))
 
-		context.BatchAsk(pid2, new(testpb.TestReply), new(testpb.TestReply))
+		context.BatchAsk(pid2, []proto.Message{new(testpb.TestReply), new(testpb.TestReply)}, time.Minute)
 		require.Error(t, context.getError())
 
 		lib.Pause(time.Second)
@@ -1519,7 +1586,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -1548,7 +1616,8 @@ func TestReceiveContext(t *testing.T) {
 		// get the address of the exchanger actor one
 		testerAddr := context.RemoteLookup(host, remotingPort, tester)
 		// send the message to t exchanger actor one using remote messaging
-		context.RemoteBatchTell(address.From(testerAddr), new(testpb.TestSend), new(testpb.TestSend), new(testpb.TestSend))
+		messages := []proto.Message{new(testpb.TestSend), new(testpb.TestSend), new(testpb.TestSend)}
+		context.RemoteBatchTell(address.From(testerAddr), messages)
 		require.NoError(t, context.getError())
 		// wait for processing to complete on the actor side
 		lib.Pause(500 * time.Millisecond)
@@ -1556,10 +1625,12 @@ func TestReceiveContext(t *testing.T) {
 
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, testerRef.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, testerRef.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful RemoteBatchAsk", func(t *testing.T) {
 		// create the context
@@ -1572,7 +1643,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -1601,15 +1673,74 @@ func TestReceiveContext(t *testing.T) {
 		// get the address of the exchanger actor one
 		testerAddr := context.RemoteLookup(host, remotingPort, tester)
 		// send the message to t exchanger actor one using remote messaging
-		replies := context.RemoteBatchAsk(address.From(testerAddr), new(testpb.TestReply), new(testpb.TestReply), new(testpb.TestReply))
+		messages := []proto.Message{new(testpb.TestReply), new(testpb.TestReply), new(testpb.TestReply)}
+		replies := context.RemoteBatchAsk(address.From(testerAddr), messages, time.Minute)
 		require.NoError(t, context.getError())
 		require.Len(t, replies, 3)
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, testerRef.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, testerRef.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
+	})
+	t.Run("With RemoteBatchAsk when remoting is not enabled", func(t *testing.T) {
+		// create the context
+		ctx := context.TODO()
+		// define the logger to use
+		logger := log.DiscardLogger
+		// generate the remoting port
+		nodePorts := dynaport.Get(1)
+		remotingPort := nodePorts[0]
+		host := "127.0.0.1"
+
+		// create the actor system
+		sys, err := NewActorSystem(
+			"test",
+			WithLogger(logger),
+			WithPassivationDisabled(),
+			WithRemoting(host, int32(remotingPort)),
+		)
+		// assert there are no error
+		require.NoError(t, err)
+
+		// start the actor system
+		err = sys.Start(ctx)
+		assert.NoError(t, err)
+
+		// create test actor
+		tester := "test"
+		testActor := newTestActor()
+		testerRef, err := sys.Spawn(ctx, tester, testActor)
+		require.NoError(t, err)
+		require.NotNil(t, testerRef)
+
+		// create an instance of receive context
+		context := &ReceiveContext{
+			ctx:    ctx,
+			sender: NoSender,
+			self:   testerRef,
+		}
+
+		testerRef.remoting = nil
+		// get the address of the exchanger actor one
+		testerAddr := context.RemoteLookup(host, remotingPort, tester)
+		// send the message to t exchanger actor one using remote messaging
+		messages := []proto.Message{new(testpb.TestReply), new(testpb.TestReply), new(testpb.TestReply)}
+		replies := context.RemoteBatchAsk(address.From(testerAddr), messages, time.Minute)
+		err = context.getError()
+		require.Error(t, err)
+		require.Empty(t, replies)
+		assert.EqualError(t, err, ErrRemotingDisabled.Error())
+
+		t.Cleanup(
+			func() {
+				assert.NoError(t, testerRef.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed RemoteBatchTell", func(t *testing.T) {
 		// create the context
@@ -1622,7 +1753,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -1641,11 +1773,13 @@ func TestReceiveContext(t *testing.T) {
 		ports := dynaport.Get(1)
 		actor1 := &exchanger{}
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -1659,19 +1793,82 @@ func TestReceiveContext(t *testing.T) {
 		}
 
 		// send the message to the exchanger actor one using remote messaging
-		context.RemoteBatchTell(address.From(&goaktpb.Address{
-			Host: "127.0.0.1",
-			Port: int32(remotingPort),
-			Name: actorName2,
-			Id:   "",
-		}), new(testpb.TestRemoteSend))
+		context.RemoteBatchTell(address.From(
+			&goaktpb.Address{
+				Host: "127.0.0.1",
+				Port: int32(remotingPort),
+				Name: actorName2,
+				Id:   "",
+			},
+		), []proto.Message{new(testpb.TestRemoteSend)})
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
+	})
+	t.Run("With RemoteBatchTell when remoting is not enabled", func(t *testing.T) {
+		// create the context
+		ctx := context.TODO()
+		// define the logger to use
+		logger := log.DiscardLogger
+		// generate the remoting port
+		nodePorts := dynaport.Get(1)
+		remotingPort := nodePorts[0]
+		host := "127.0.0.1"
+
+		// create the actor system
+		sys, err := NewActorSystem(
+			"test",
+			WithLogger(logger),
+			WithPassivationDisabled(),
+			WithRemoting(host, int32(remotingPort)),
+		)
+		// assert there are no error
+		require.NoError(t, err)
+
+		// start the actor system
+		err = sys.Start(ctx)
+		assert.NoError(t, err)
+
+		// create test actor
+		tester := "test"
+		testActor := newTestActor()
+		testerRef, err := sys.Spawn(ctx, tester, testActor)
+		require.NoError(t, err)
+		require.NotNil(t, testerRef)
+
+		// create an instance of receive context
+		context := &ReceiveContext{
+			ctx:    ctx,
+			sender: NoSender,
+			self:   testerRef,
+		}
+
+		// get the address of the exchanger actor one
+		testerAddr := context.RemoteLookup(host, remotingPort, tester)
+
+		testerRef.remoting = nil
+
+		// send the message to t exchanger actor one using remote messaging
+		messages := []proto.Message{new(testpb.TestSend), new(testpb.TestSend), new(testpb.TestSend)}
+		context.RemoteBatchTell(address.From(testerAddr), messages)
+		err = context.getError()
+		require.Error(t, err)
+		assert.EqualError(t, err, ErrRemotingDisabled.Error())
+
+		lib.Pause(time.Second)
+
+		t.Cleanup(
+			func() {
+				assert.NoError(t, testerRef.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful RemoteBatchAsk", func(t *testing.T) {
 		// create the context
@@ -1684,7 +1881,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -1703,11 +1901,13 @@ func TestReceiveContext(t *testing.T) {
 		ports := dynaport.Get(1)
 		actor1 := &exchanger{}
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -1720,19 +1920,23 @@ func TestReceiveContext(t *testing.T) {
 			self:    pid1,
 		}
 
-		context.RemoteBatchAsk(address.From(&goaktpb.Address{
-			Host: "127.0.0.1",
-			Port: int32(remotingPort),
-			Name: actorName2,
-			Id:   "",
-		}), new(testpb.TestReply))
+		context.RemoteBatchAsk(address.From(
+			&goaktpb.Address{
+				Host: "127.0.0.1",
+				Port: int32(remotingPort),
+				Name: actorName2,
+				Id:   "",
+			},
+		), []proto.Message{new(testpb.TestReply)}, time.Minute)
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With no panics RemoteReSpawn when actor not found", func(t *testing.T) {
 		// create the context
@@ -1745,7 +1949,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 			WithRemoting(host, int32(remotingPort)),
@@ -1764,11 +1969,13 @@ func TestReceiveContext(t *testing.T) {
 		ports := dynaport.Get(1)
 		actor1 := &exchanger{}
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -1785,10 +1992,12 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed RemoteReSpawn", func(t *testing.T) {
 		// create the context
@@ -1801,7 +2010,8 @@ func TestReceiveContext(t *testing.T) {
 		host := "127.0.0.1"
 
 		// create the actor system
-		sys, err := NewActorSystem("test",
+		sys, err := NewActorSystem(
+			"test",
 			WithLogger(logger),
 			WithPassivationDisabled(),
 		)
@@ -1819,11 +2029,13 @@ func TestReceiveContext(t *testing.T) {
 		actor1 := &exchanger{}
 		ports := dynaport.Get(1)
 		actorPath1 := address.New("Exchange1", "sys", "host", ports[0])
-		pid1, err := newPID(ctx,
+		pid1, err := newPID(
+			ctx,
 			actorPath1,
 			actor1,
 			withInitMaxRetries(1),
-			withCustomLogger(log.DiscardLogger))
+			withCustomLogger(log.DiscardLogger),
+		)
 
 		require.NoError(t, err)
 		require.NotNil(t, pid1)
@@ -1840,10 +2052,12 @@ func TestReceiveContext(t *testing.T) {
 		require.Error(t, context.getError())
 		lib.Pause(time.Second)
 
-		t.Cleanup(func() {
-			assert.NoError(t, pid1.Shutdown(ctx))
-			assert.NoError(t, sys.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, pid1.Shutdown(ctx))
+				assert.NoError(t, sys.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful PipeTo", func(t *testing.T) {
 		askTimeout := time.Minute
@@ -1851,7 +2065,6 @@ func TestReceiveContext(t *testing.T) {
 
 		opts := []pidOption{
 			withInitMaxRetries(1),
-			withAskTimeout(askTimeout),
 			withPassivationDisabled(),
 			withCustomLogger(log.DiscardLogger),
 		}
@@ -1912,12 +2125,10 @@ func TestReceiveContext(t *testing.T) {
 		assert.NoError(t, pid2.Shutdown(ctx))
 	})
 	t.Run("With failed PipeTo", func(t *testing.T) {
-		askTimeout := time.Minute
 		ctx := context.TODO()
 
 		opts := []pidOption{
 			withInitMaxRetries(1),
-			withAskTimeout(askTimeout),
 			withPassivationDisabled(),
 			withCustomLogger(log.DiscardLogger),
 		}
@@ -1990,9 +2201,11 @@ func TestReceiveContext(t *testing.T) {
 		context.SendAsync(pid2.Name(), new(testpb.TestSend))
 		require.NoError(t, context.getError())
 
-		t.Cleanup(func() {
-			assert.NoError(t, actorSystem.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, actorSystem.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed SendAsync", func(t *testing.T) {
 		ctx := context.Background()
@@ -2030,9 +2243,11 @@ func TestReceiveContext(t *testing.T) {
 		context.SendAsync(pid2.Name(), new(testpb.TestSend))
 		require.Error(t, context.getError())
 
-		t.Cleanup(func() {
-			assert.NoError(t, actorSystem.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, actorSystem.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With successful SendSync command", func(t *testing.T) {
 		ctx := context.Background()
@@ -2064,14 +2279,16 @@ func TestReceiveContext(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, pid2)
 
-		reply := context.SendSync(pid2.Name(), new(testpb.TestReply))
+		reply := context.SendSync(pid2.Name(), new(testpb.TestReply), time.Minute)
 		require.NotNil(t, reply)
 		expected := new(testpb.Reply)
 		assert.True(t, proto.Equal(expected, reply))
 
-		t.Cleanup(func() {
-			assert.NoError(t, actorSystem.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, actorSystem.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With failed SendSync", func(t *testing.T) {
 		ctx := context.Background()
@@ -2107,12 +2324,14 @@ func TestReceiveContext(t *testing.T) {
 		lib.Pause(time.Second)
 		assert.NoError(t, pid2.Shutdown(ctx))
 
-		context.SendSync(pid2.Name(), new(testpb.TestReply))
+		context.SendSync(pid2.Name(), new(testpb.TestReply), time.Minute)
 		require.Error(t, context.getError())
 
-		t.Cleanup(func() {
-			assert.NoError(t, actorSystem.Stop(ctx))
-		})
+		t.Cleanup(
+			func() {
+				assert.NoError(t, actorSystem.Stop(ctx))
+			},
+		)
 	})
 	t.Run("With Stash when stash not set", func(t *testing.T) {
 		ctx := context.TODO()

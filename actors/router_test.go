@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,8 +48,7 @@ func TestRouter(t *testing.T) {
 		system, err := NewActorSystem(
 			"testSystem",
 			WithPassivationDisabled(),
-			WithLogger(logger),
-			WithReplyTimeout(time.Minute))
+			WithLogger(logger))
 
 		require.NoError(t, err)
 		require.NotNil(t, system)
@@ -108,8 +107,7 @@ func TestRouter(t *testing.T) {
 		system, err := NewActorSystem(
 			"testSystem",
 			WithPassivationDisabled(),
-			WithLogger(logger),
-			WithReplyTimeout(time.Minute))
+			WithLogger(logger))
 
 		require.NoError(t, err)
 		require.NotNil(t, system)
@@ -156,8 +154,7 @@ func TestRouter(t *testing.T) {
 		system, err := NewActorSystem(
 			"testSystem",
 			WithPassivationDisabled(),
-			WithLogger(logger),
-			WithReplyTimeout(time.Minute))
+			WithLogger(logger))
 
 		require.NoError(t, err)
 		require.NotNil(t, system)
@@ -207,8 +204,7 @@ func TestRouter(t *testing.T) {
 		system, err := NewActorSystem(
 			"testSystem",
 			WithPassivationDisabled(),
-			WithLogger(logger),
-			WithReplyTimeout(time.Minute))
+			WithLogger(logger))
 
 		require.NoError(t, err)
 		require.NotNil(t, system)
@@ -269,8 +265,7 @@ func TestRouter(t *testing.T) {
 		system, err := NewActorSystem(
 			"testSystem",
 			WithPassivationDisabled(),
-			WithLogger(logger),
-			WithReplyTimeout(time.Minute))
+			WithLogger(logger))
 
 		require.NoError(t, err)
 		require.NotNil(t, system)

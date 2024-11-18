@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,11 +61,6 @@ func TestPIDOptions(t *testing.T) {
 			name:     "WithPassivationAfter",
 			option:   withPassivationAfter(time.Second),
 			expected: &PID{passivateAfter: atomicDuration},
-		},
-		{
-			name:     "WithAskTimeout",
-			option:   withAskTimeout(time.Second),
-			expected: &PID{askTimeout: atomicDuration},
 		},
 		{
 			name:     "WithInitMaxRetries",

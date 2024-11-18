@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,12 @@ func New(opts ...ChainOption) *Chain {
 // AddError add an error to the chain
 func (c *Chain) AddError(err error) *Chain {
 	c.errs = append(c.errs, err)
+	return c
+}
+
+// AddErrors add a slice of errors to the chain. Remember the slice order does matter here
+func (c *Chain) AddErrors(errs ...error) *Chain {
+	c.errs = append(c.errs, errs...)
 	return c
 }
 

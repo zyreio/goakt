@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,7 @@ func TestOption(t *testing.T) {
 	atomicTrue.Store(true)
 	clusterConfig := NewClusterConfig()
 	hasher := hash.DefaultHasher()
+
 	testCases := []struct {
 		name     string
 		option   Option
@@ -50,11 +51,6 @@ func TestOption(t *testing.T) {
 			name:     "WithExpireActorAfter",
 			option:   WithExpireActorAfter(2 * time.Second),
 			expected: actorSystem{expireActorAfter: 2. * time.Second},
-		},
-		{
-			name:     "WithReplyTimeout",
-			option:   WithReplyTimeout(2 * time.Second),
-			expected: actorSystem{askTimeout: 2. * time.Second},
 		},
 		{
 			name:     "WithActorInitMaxRetries",

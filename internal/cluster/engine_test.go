@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -94,7 +94,7 @@ func TestSingleNode(t *testing.T) {
 		err = cluster.Start(ctx)
 		require.NoError(t, err)
 
-		hostNodeAddr := cluster.Host()
+		hostNodeAddr := cluster.node.Host
 		assert.Equal(t, host, hostNodeAddr)
 
 		//  shutdown the Node startNode
@@ -220,18 +220,18 @@ func TestSingleNode(t *testing.T) {
 
 		// set key
 		key := "my-key"
-		require.NoError(t, cluster.SetKey(ctx, key))
+		require.NoError(t, cluster.SetSchedulerJobKey(ctx, key))
 
-		isSet, err := cluster.KeyExists(ctx, key)
+		isSet, err := cluster.SchedulerJobKeyExists(ctx, key)
 		require.NoError(t, err)
 		assert.True(t, isSet)
 
 		// unset the key
-		err = cluster.UnsetKey(ctx, key)
+		err = cluster.UnsetSchedulerJobKey(ctx, key)
 		require.NoError(t, err)
 
 		// check the key existence
-		isSet, err = cluster.KeyExists(ctx, key)
+		isSet, err = cluster.SchedulerJobKeyExists(ctx, key)
 		require.NoError(t, err)
 		assert.False(t, isSet)
 
@@ -328,7 +328,7 @@ func TestMultipleNodes(t *testing.T) {
 	// create a cluster node1
 	node2, sd2 := startEngine(t, "node2", srv.Addr().String())
 	require.NotNil(t, node2)
-	node2Addr := node2.AdvertisedAddress()
+	node2Addr := node2.node.PeersAddress()
 
 	// wait for the node to start properly
 	lib.Pause(time.Second)
@@ -451,6 +451,8 @@ func startEngine(t *testing.T, nodeName, serverAddr string) (*Engine, discovery.
 		ActorSystemName: actorSystemName,
 		NatsServer:      fmt.Sprintf("nats://%s", serverAddr),
 		NatsSubject:     natsSubject,
+		Host:            host,
+		DiscoveryPort:   gossipPort,
 	}
 
 	hostNode := discovery.Node{
@@ -462,7 +464,7 @@ func startEngine(t *testing.T, nodeName, serverAddr string) (*Engine, discovery.
 	}
 
 	// create the instance of provider
-	provider := nats.NewDiscovery(&config, &hostNode)
+	provider := nats.NewDiscovery(&config)
 
 	// create the startNode
 	engine, err := NewEngine(nodeName, provider, &hostNode, WithLogger(log.DiscardLogger))

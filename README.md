@@ -44,6 +44,7 @@ Also, check reference section at the end of the post for more material regarding
   - [Observability](#observability)
     - [Metrics](#metrics)
     - [Logging](#logging)
+  - [Security](#encryption-and-mtls)
   - [Testkit](#testkit)
 - [API](#api)
 - [Client](#client)
@@ -154,9 +155,9 @@ In GoAkt, supervision allows to define the various strategies to apply when a gi
 The supervisory strategy to adopt is set during the creation of the actor system.
 In GoAkt each child actor is treated separately. There is no concept of one-for-one and one-for-all strategies.
 The following directives are supported:
-- [`Restart`](./actors/supervisor.go): to restart the child actor. One can control how the restart is done using the following options: - `maxNumRetries`: defines the maximum of restart attempts - `timeout`: how to attempt restarting the faulty actor.
-- [`Stop`](./actors/supervisor.go): to stop the child actor which is the default one
-- [`Resume`](./actors/supervisor.go): ignores the failure and process the next message, instead.
+- [`Restart`](./actors/supervisor_directive.go): to restart the child actor. One can control how the restart is done using the following options: - `maxNumRetries`: defines the maximum of restart attempts - `timeout`: how to attempt restarting the faulty actor.
+- [`Stop`](./actors/supervisor_directive.go): to stop the child actor which is the default one
+- [`Resume`](./actors/supervisor_directive.go): ignores the failure and process the next message, instead.
 
 With the `Restart` directive, every child actor of the faulty is stopped and garbage-collected when the given parent is restarted. This helps avoid resources leaking.
 There are only two scenarios where an actor can supervise another actor:
@@ -307,7 +308,7 @@ To use the stashing feature, call the following methods on the [ReceiveContext](
 
 ### Remoting
 
-This allows remote actors to communicate. The underlying technology is gRPC. To enable remoting just use the `WithRemoting` option when
+[Remoting](./actors/remoting.go) allows remote actors to communicate. The underlying technology is gRPC. To enable remoting just use the `WithRemoting` option when
 creating the actor system. See actor system [options](./actors/option.go). These are the following remoting features available:
 
 - `RemoteTell`: to send a fire-and-forget message to an actor remotely
@@ -319,7 +320,7 @@ creating the actor system. See actor system [options](./actors/option.go). These
 - `RemoteStop`: to stop an actor on a remote machine
 - `RemoteSpawn`: to start an actor on a remote machine. The given actor implementation must be registered using the [`Register`](./actors/actor_system.go) method of the actor system on the remote machine for this call to succeed.
 
-These methods can be used from the [API](./actors/api.go) as well as from the [PID](./actors/pid.go) which is the actor reference when an actor is created.
+These methods can be found as well as on the [PID](./actors/pid.go) which is the actor reference when an actor is created.
 
 ### Cluster
 
@@ -343,6 +344,11 @@ The following methods have been implemented to help push some metrics to any obs
 #### Logging
 
 A simple logging interface to allow custom logger to be implemented instead of using the default logger.
+
+### Encryption and mTLS
+
+GoAkt does not support at the moment any form of data encryption or TLS to prevent any form of mitm attack. This feature may come in the future.
+At the moment, I will recommend a GoAkt-based application should be deployed behind a vpc or using a service mesh like Linkerd or Istio which offers great mTLS support when it comes to service communucation.
 
 ### Testkit
 
@@ -370,20 +376,20 @@ To help implement unit tests in GoAkt-based applications. See [Testkit](./testki
 
 ## API
 
-The API interface helps interact with a GoAkt actor system as kind of client. The following features are available:
+The [API](./actors/api.go) interface helps interact with a GoAkt actor system as kind of client. The following features are available:
 
-- `Tell`: to send a message to an actor in a fire-and-forget manner
-- `Ask`: to send a message to an actor and expect a response within a given timeout
+- `Tell`: to send a message to an actor in a fire-and-forget manner.
+- `Ask`: to send a message to an actor and expect a response within a given timeout.
 - `BatchAsk`: to send a batch of requests to an actore remotely and expect responses back for each request.
-- `BatchTell`: to send a batch of fire-and-forget messages to an actor remotely
-- `RemoteTell`: to send a fire-and-forget message to an actor remotely
-- `RemoteAsk`: to send a request/response type of message to a remote actor
-- `RemoteBatchTell`: to send a fire-and-forget bulk of messages to a remote actor
-- `RemoteBatchAsk`: to send a bulk messages to a remote actor with replies
-- `RemoteLookup`: to lookup for an actor on a remote host
-- `RemoteReSpawn`: to restarts an actor on a remote machine
-- `RemoteStop`: to stop an actor on a remote machine
-- `RemoteSpawn`: to start an actor on a remote machine. The given actor implementation must be registered using the [`Register`](./actors/actor_system.go) method of the actor system on the remote machine for this call to succeed.
+- `BatchTell`: to send a batch of fire-and-forget messages to an actor remotely.
+- `RemoteTell`: to send a fire-and-forget message to an actor remotely using the [Remoting](./actors/remoting.go) API.
+- `RemoteAsk`: to send a request/response type of message to a remote actor using the [Remoting](./actors/remoting.go) API.
+- `RemoteBatchTell`: to send a fire-and-forget bulk of messages to a remote actor using the [Remoting](./actors/remoting.go) API.
+- `RemoteBatchAsk`: to send a bulk messages to a remote actor with replies using the [Remoting](./actors/remoting.go) API.
+- `RemoteLookup`: to lookup for an actor on a remote host using the [Remoting](./actors/remoting.go) API.
+- `RemoteReSpawn`: to restarts an actor on a remote machine using the [Remoting](./actors/remoting.go) API.
+- `RemoteStop`: to stop an actor on a remote machine using the [Remoting](./actors/remoting.go) API.
+- `RemoteSpawn`: to start an actor on a remote machine using the [Remoting](./actors/remoting.go) API. The given actor implementation must be registered using the [`Register`](./actors/actor_system.go) method of the actor system on the remote machine for this call to succeed.
 
 ## Client
 
@@ -537,6 +543,8 @@ To use the NATS discovery provider one needs to provide the following:
 - `Timeout`: the nodes discovery timeout
 - `MaxJoinAttempts`: the maximum number of attempts to connect an existing NATs server. Defaults to `5`
 - `ReconnectWait`: the time to backoff after attempting a reconnect to a server that we were already connected to previously. Default to `2 seconds`
+- `Host`: the given node host address
+- `DiscoveryPort`: the discovery port of the given node
 
 ```go
 package main
@@ -554,15 +562,14 @@ const (
 config := nats.Config{
     ApplicationName: applicationName,
     ActorSystemName: actorSystemName,
-    NatsServer:      natsServer,
+    NatsServer:      natsServerAddr,
     NatsSubject:     natsSubject,
+    Host:            "127.0.0.1",
+    DiscoveryPort:   20380,
 }
 
-// define the host node instance
-hostNode := discovery.Node{}
-
 // instantiate the NATS discovery provider by passing the config and the hostNode
-disco := nats.NewDiscovery(&config, &hostNode)
+disco := nats.NewDiscovery(&config)
 
 // pass the service discovery when enabling cluster mode in the actor system
 ```

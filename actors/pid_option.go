@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,14 +38,6 @@ type pidOption func(pid *PID)
 func withPassivationAfter(duration time.Duration) pidOption {
 	return func(pid *PID) {
 		pid.passivateAfter.Store(duration)
-	}
-}
-
-// withAskTimeout sets how long in seconds an actor should reply a command
-// in a receive-reply pattern
-func withAskTimeout(timeout time.Duration) pidOption {
-	return func(pid *PID) {
-		pid.askTimeout.Store(timeout)
 	}
 }
 
@@ -117,5 +109,12 @@ func withEventsStream(stream *eventstream.EventsStream) pidOption {
 func withInitTimeout(duration time.Duration) pidOption {
 	return func(pid *PID) {
 		pid.initTimeout.Store(duration)
+	}
+}
+
+// withRemoting set the remoting feature
+func withRemoting(remoting *Remoting) pidOption {
+	return func(pid *PID) {
+		pid.remoting = remoting
 	}
 }

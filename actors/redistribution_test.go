@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,17 +45,17 @@ func TestRedistribution(t *testing.T) {
 		srv := startNatsServer(t)
 
 		// create and start system cluster
-		node1, sd1 := startClusterSystem(t, "Node1", srv.Addr().String())
+		node1, sd1 := startClusterSystem(t, srv.Addr().String())
 		require.NotNil(t, node1)
 		require.NotNil(t, sd1)
 
 		// create and start system cluster
-		node2, sd2 := startClusterSystem(t, "Node2", srv.Addr().String())
+		node2, sd2 := startClusterSystem(t, srv.Addr().String())
 		require.NotNil(t, node2)
 		require.NotNil(t, sd2)
 
 		// create and start system cluster
-		node3, sd3 := startClusterSystem(t, "Node3", srv.Addr().String())
+		node3, sd3 := startClusterSystem(t, srv.Addr().String())
 		require.NotNil(t, node3)
 		require.NotNil(t, sd3)
 

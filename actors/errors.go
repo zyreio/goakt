@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -85,6 +85,10 @@ var (
 	ErrFullMailbox = errors.New("mailbox is full")
 	// ErrSchedulerNotStarted is returned when the scheduler has not started
 	ErrSchedulerNotStarted = errors.New("scheduler has not started")
+	// ErrInvalidMessage is returned when an invalid remote message is sent
+	ErrInvalidMessage = func(err error) error { return fmt.Errorf("invalid remote message: %w", err) }
+	// ErrInvalidTimeout is returned when a given timeout is negative or zero
+	ErrInvalidTimeout = errors.New("invalid timeout")
 )
 
 // eof returns true if the given error is an EOF error

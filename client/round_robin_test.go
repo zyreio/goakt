@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022-2024 Tochemey
+ * Copyright (c) 2022-2024  Arsene Tochemey Gandote
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,9 +39,11 @@ func TestRoundRobin(t *testing.T) {
 	}
 
 	balancer := NewRoundRobin()
-	balancer.Set(NewNode("192.168.34.10:3322", 2),
-		NewNode("192.168.34.11:3322", 0),
-		NewNode("192.168.34.12:3322", 1))
+	balancer.Set(
+		NewNode("192.168.34.10:3322", WithWeight(2)),
+		NewNode("192.168.34.11:3322", WithWeight(0)),
+		NewNode("192.168.34.12:3322", WithWeight(1)),
+	)
 
 	actual := make([]string, 4)
 	for i := 0; i < 4; i++ {
