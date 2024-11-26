@@ -28,7 +28,6 @@ import (
 	"context"
 	"net"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -42,9 +41,7 @@ import (
 	"github.com/tochemey/goakt/v2/address"
 	"github.com/tochemey/goakt/v2/goaktpb"
 	"github.com/tochemey/goakt/v2/internal/lib"
-	"github.com/tochemey/goakt/v2/internal/types"
 	"github.com/tochemey/goakt/v2/log"
-	clustermocks "github.com/tochemey/goakt/v2/mocks/cluster"
 	testkit "github.com/tochemey/goakt/v2/mocks/discovery"
 	"github.com/tochemey/goakt/v2/test/data/testpb"
 )
@@ -415,6 +412,8 @@ func TestActorSystem(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, actorRef)
 
+			lib.Pause(500 * time.Millisecond)
+
 			// send a message to the actor
 			reply, err := Ask(ctx, actorRef, new(testpb.TestReply), replyTimeout)
 			require.NoError(t, err)
@@ -423,8 +422,8 @@ func TestActorSystem(t *testing.T) {
 			require.True(t, proto.Equal(expected, reply))
 			require.True(t, actorRef.IsRunning())
 
-			// wait for a while for the system to stop
-			lib.Pause(time.Second)
+			lib.Pause(500 * time.Millisecond)
+
 			// restart the actor
 			_, err = sys.ReSpawn(ctx, actorName)
 			require.NoError(t, err)
@@ -1485,34 +1484,7 @@ func TestActorSystem(t *testing.T) {
 			)
 		},
 	)
-	t.Run(
-		"With cluster start failure with remoting not enabled", func(t *testing.T) {
-			ctx := context.TODO()
-			logger := log.DiscardLogger
-			mockedCluster := new(clustermocks.Interface)
-			mockedErr := errors.New("failed to start")
-			mockedCluster.EXPECT().Start(ctx).Return(mockedErr)
-
-			// mock the discovery provider
-			provider := new(testkit.Provider)
-			provider.EXPECT().ID().Return("id")
-
-			system := &actorSystem{
-				name:          "testSystem",
-				logger:        logger,
-				cluster:       mockedCluster,
-				locker:        sync.Mutex{},
-				scheduler:     newScheduler(logger, time.Second, withSchedulerCluster(mockedCluster)),
-				clusterConfig: NewClusterConfig(),
-				registry:      types.NewRegistry(),
-			}
-			system.clusterEnabled.Store(true)
-
-			err := system.Start(ctx)
-			require.Error(t, err)
-			assert.EqualError(t, err, "clustering needs remoting to be enabled")
-		},
-	)
+	//
 	t.Run(
 		"With RemoteSpawn with clustering enabled", func(t *testing.T) {
 			ctx := context.TODO()

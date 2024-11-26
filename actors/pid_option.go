@@ -70,13 +70,6 @@ func withSupervisorDirective(directive SupervisorDirective) pidOption {
 	}
 }
 
-// withShutdownTimeout sets the shutdown timeout
-func withShutdownTimeout(duration time.Duration) pidOption {
-	return func(pid *PID) {
-		pid.shutdownTimeout.Store(duration)
-	}
-}
-
 // withNoPassivation disable passivation
 func withPassivationDisabled() pidOption {
 	return func(pid *PID) {
@@ -87,7 +80,7 @@ func withPassivationDisabled() pidOption {
 // withStash sets the actor's stash buffer
 func withStash() pidOption {
 	return func(pid *PID) {
-		pid.stashBuffer = NewUnboundedMailbox()
+		pid.stashBox = NewUnboundedMailbox()
 	}
 }
 
@@ -116,5 +109,12 @@ func withInitTimeout(duration time.Duration) pidOption {
 func withRemoting(remoting *Remoting) pidOption {
 	return func(pid *PID) {
 		pid.remoting = remoting
+	}
+}
+
+// withParent sets the parent id
+func withParent(parent *PID) pidOption {
+	return func(pid *PID) {
+		pid.parent = parent
 	}
 }

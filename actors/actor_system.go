@@ -48,8 +48,10 @@ import (
 
 	"github.com/tochemey/goakt/v2/address"
 	"github.com/tochemey/goakt/v2/discovery"
+	"github.com/tochemey/goakt/v2/goaktpb"
 	"github.com/tochemey/goakt/v2/hash"
 	"github.com/tochemey/goakt/v2/internal/cluster"
+	"github.com/tochemey/goakt/v2/internal/errorschain"
 	"github.com/tochemey/goakt/v2/internal/eventstream"
 	"github.com/tochemey/goakt/v2/internal/internalpb"
 	"github.com/tochemey/goakt/v2/internal/internalpb/internalpbconnect"
@@ -87,7 +89,7 @@ type ActorSystem interface {
 	// NumActors returns the total number of active actors in the system
 	NumActors() uint64
 	// LocalActor returns the reference of a local actor.
-	// A local actor is an actor that reside on the same node where the given actor system is running
+	// A local actor is an actor that reside on the same node where the given actor system has started
 	LocalActor(actorName string) (*PID, error)
 	// RemoteActor returns the address of a remote actor when cluster is enabled
 	// When the cluster mode is not enabled an actor not found error will be returned
@@ -98,7 +100,7 @@ type ActorSystem interface {
 	// When remoting is enabled this method will return and error
 	// An actor not found error is return when the actor is not found.
 	ActorOf(ctx context.Context, actorName string) (addr *address.Address, pid *PID, err error)
-	// InCluster states whether the actor system is running within a cluster of nodes
+	// InCluster states whether the actor system has started within a cluster of nodes
 	InCluster() bool
 	// GetPartition returns the partition where a given actor is located
 	GetPartition(actorName string) uint64
@@ -144,6 +146,12 @@ type ActorSystem interface {
 	setActor(actor *PID)
 	// supervisor return the system supervisor
 	getSupervisor() *PID
+	// getPeerStateFromCache returns the peer state from the cache
+	getPeerStateFromCache(address string) (*internalpb.PeerState, error)
+	// reservedName returns reserved actor's name
+	reservedName(nameType nameType) string
+	// getCluster returns the cluster engine
+	getCluster() cluster.Interface
 }
 
 // ActorSystem represent a collection of actors on a given node
@@ -222,9 +230,10 @@ type actorSystem struct {
 	peersStateLoopInterval time.Duration
 	peersCache             *sync.Map
 	clusterConfig          *ClusterConfig
-	redistributionChan     chan *cluster.Event
+	rebalancingChan        chan *cluster.Event
 
 	supervisor *PID
+	rebalancer *PID
 }
 
 // enforce compilation error when all methods of the ActorSystem interface are not implemented
@@ -276,6 +285,11 @@ func NewActorSystem(name string, opts ...Option) (ActorSystem, error) {
 		opt.Apply(system)
 	}
 
+	// set the host and port
+	if err := system.setHostPort(); err != nil {
+		return nil, err
+	}
+
 	// we need to make sure the cluster kinds are defined
 	if system.clusterEnabled.Load() {
 		if err := system.clusterConfig.Validate(); err != nil {
@@ -283,7 +297,11 @@ func NewActorSystem(name string, opts ...Option) (ActorSystem, error) {
 		}
 	}
 
-	system.scheduler = newScheduler(system.logger, system.shutdownTimeout, withSchedulerCluster(system.cluster), withSchedulerRemoting(NewRemoting()))
+	system.scheduler = newScheduler(system.logger,
+		system.shutdownTimeout,
+		withSchedulerCluster(system.cluster),
+		withSchedulerRemoting(NewRemoting()))
+
 	return system, nil
 }
 
@@ -388,7 +406,7 @@ func (x *actorSystem) GetPartition(actorName string) uint64 {
 	return uint64(x.cluster.GetPartition(actorName))
 }
 
-// InCluster states whether the actor system is running within a cluster of nodes
+// InCluster states whether the actor system is started within a cluster of nodes
 func (x *actorSystem) InCluster() bool {
 	return x.clusterEnabled.Load() && x.cluster != nil
 }
@@ -404,7 +422,7 @@ func (x *actorSystem) Spawn(ctx context.Context, name string, actor Actor, opts 
 		return nil, ErrActorSystemNotStarted
 	}
 
-	// set the default actor path assuming we are running locally
+	// set the default actor path assuming we are started locally
 	actorPath := x.actorAddress(name)
 	pid, exist := x.actors.Get(actorPath)
 	if exist {
@@ -453,7 +471,7 @@ func (x *actorSystem) SpawnFromFunc(ctx context.Context, receiveFunc ReceiveFunc
 // A single actor will only process one message at a time.
 func (x *actorSystem) SpawnRouter(ctx context.Context, poolSize int, routeesKind Actor, opts ...RouterOption) (*PID, error) {
 	router := newRouter(poolSize, routeesKind, x.logger, opts...)
-	routerName := x.getSystemActorName(routerType)
+	routerName := x.reservedName(routerType)
 	return x.Spawn(ctx, routerName, router)
 }
 
@@ -509,7 +527,7 @@ func (x *actorSystem) Actors() []*PID {
 	x.locker.Unlock()
 	actors := make([]*PID, 0, len(pids))
 	for _, pid := range pids {
-		if !isSystemName(pid.Name()) {
+		if !isReservedName(pid.Name()) {
 			actors = append(actors, pid)
 		}
 	}
@@ -575,7 +593,7 @@ func (x *actorSystem) ActorOf(ctx context.Context, actorName string) (addr *addr
 }
 
 // LocalActor returns the reference of a local actor.
-// A local actor is an actor that reside on the same node where the given actor system is running
+// A local actor is an actor that reside on the same node where the given actor system has started
 func (x *actorSystem) LocalActor(actorName string) (*PID, error) {
 	x.locker.Lock()
 
@@ -631,28 +649,19 @@ func (x *actorSystem) RemoteActor(ctx context.Context, actorName string) (addr *
 // Start starts the actor system
 func (x *actorSystem) Start(ctx context.Context) error {
 	x.started.Store(true)
-
-	if x.remotingEnabled.Load() {
-		x.enableRemoting(ctx)
-	}
-
-	if x.clusterEnabled.Load() {
-		if err := x.enableClustering(ctx); err != nil {
-			return err
-		}
+	if err := errorschain.
+		New(errorschain.ReturnFirst()).
+		AddError(x.spawnSupervisor(ctx)).
+		AddError(x.spawnRebalancer(ctx)).
+		AddError(x.enableRemoting(ctx)).
+		AddError(x.enableClustering(ctx)).
+		Error(); err != nil {
+		// reset the start
+		x.started.Store(false)
+		return err
 	}
 
 	x.scheduler.Start(ctx)
-
-	actorName := x.getSystemActorName(supervisorType)
-	pid, err := x.configPID(ctx, actorName, newSystemSupervisor(x.logger))
-	if err != nil {
-		return fmt.Errorf("actor=%s failed to start system supervisor: %w", actorName, err)
-	}
-
-	x.supervisor = pid
-	x.setActor(pid)
-
 	go x.janitor()
 
 	x.logger.Infof("%s started..:)", x.name)
@@ -699,7 +708,7 @@ func (x *actorSystem) Stop(ctx context.Context) error {
 		close(x.actorsChan)
 		x.clusterSyncStopSig <- types.Unit{}
 		x.clusterEnabled.Store(false)
-		close(x.redistributionChan)
+		close(x.rebalancingChan)
 	}
 
 	// stop the supervisor actor
@@ -1044,6 +1053,22 @@ func (x *actorSystem) getSupervisor() *PID {
 	return supervisor
 }
 
+// getPeerStateFromCache returns the peer state from the cache
+func (x *actorSystem) getPeerStateFromCache(address string) (*internalpb.PeerState, error) {
+	x.locker.Lock()
+	value, ok := x.peersCache.Load(address)
+	x.locker.Unlock()
+	if !ok {
+		return nil, ErrPeerNotFound
+	}
+
+	peerState := new(internalpb.PeerState)
+	if err := proto.Unmarshal(value.([]byte), peerState); err != nil {
+		return nil, err
+	}
+	return peerState, nil
+}
+
 // setActor implements ActorSystem.
 func (x *actorSystem) setActor(actor *PID) {
 	x.actors.Set(actor)
@@ -1058,6 +1083,10 @@ func (x *actorSystem) setActor(actor *PID) {
 // enableClustering enables clustering. When clustering is enabled remoting is also enabled to facilitate remote
 // communication
 func (x *actorSystem) enableClustering(ctx context.Context) error {
+	if !x.clusterEnabled.Load() {
+		return nil
+	}
+
 	x.logger.Info("enabling clustering...")
 
 	if !x.remotingEnabled.Load() {
@@ -1108,7 +1137,7 @@ func (x *actorSystem) enableClustering(ctx context.Context) error {
 	x.locker.Lock()
 	x.cluster = clusterEngine
 	x.clusterEventsChan = clusterEngine.Events()
-	x.redistributionChan = make(chan *cluster.Event, 1)
+	x.rebalancingChan = make(chan *cluster.Event, 1)
 	for _, kind := range x.clusterConfig.Kinds() {
 		x.registry.Register(kind)
 		x.logger.Infof("cluster kind=(%s) registered", types.TypeName(kind))
@@ -1118,24 +1147,18 @@ func (x *actorSystem) enableClustering(ctx context.Context) error {
 	go x.clusterEventsLoop()
 	go x.replicationLoop()
 	go x.peersStateLoop()
-	go x.redistributionLoop()
+	go x.rebalancingLoop()
 
 	x.logger.Info("clustering enabled...:)")
 	return nil
 }
 
 // enableRemoting enables the remoting service to handle remote messaging
-func (x *actorSystem) enableRemoting(ctx context.Context) {
-	x.logger.Info("enabling remoting...")
-
-	remotingHost, remotingPort, err := tcp.GetHostPort(fmt.Sprintf("%s:%d", x.host, x.port))
-	if err != nil {
-		x.logger.Panic(fmt.Errorf("failed to resolve remoting TCP address: %w", err))
+func (x *actorSystem) enableRemoting(ctx context.Context) error {
+	if !x.remotingEnabled.Load() {
+		return nil
 	}
-
-	x.host = remotingHost
-	x.port = int32(remotingPort)
-
+	x.logger.Info("enabling remoting...")
 	remotingServicePath, remotingServiceHandler := internalpbconnect.NewRemotingServiceHandler(x)
 	clusterServicePath, clusterServiceHandler := internalpbconnect.NewClusterServiceHandler(x)
 
@@ -1144,13 +1167,14 @@ func (x *actorSystem) enableRemoting(ctx context.Context) {
 	mux.Handle(clusterServicePath, clusterServiceHandler)
 
 	x.locker.Lock()
+	defer x.locker.Unlock()
+
 	// configure the appropriate server
 	if err := x.configureServer(ctx, mux); err != nil {
 		x.locker.Unlock()
-		x.logger.Panic(fmt.Errorf("failed enable remoting: %w", err))
-		return
+		x.logger.Error(fmt.Errorf("failed enable remoting: %w", err))
+		return err
 	}
-	x.locker.Unlock()
 
 	go func() {
 		if err := x.startHTTPServer(); err != nil {
@@ -1162,6 +1186,7 @@ func (x *actorSystem) enableRemoting(ctx context.Context) {
 
 	x.remoting = NewRemoting()
 	x.logger.Info("remoting enabled...:)")
+	return nil
 }
 
 // reset the actor system
@@ -1209,8 +1234,8 @@ func (x *actorSystem) janitor() {
 func (x *actorSystem) replicationLoop() {
 	for actor := range x.actorsChan {
 		// never replicate system actors because there are specific to the
-		// running node
-		if isSystemName(actor.GetActorAddress().GetName()) {
+		// started node
+		if isReservedName(actor.GetActorAddress().GetName()) {
 			continue
 		}
 		if x.InCluster() {
@@ -1234,7 +1259,7 @@ func (x *actorSystem) clusterEventsLoop() {
 					x.eventsStream.Publish(eventsTopic, message)
 					x.logger.Debugf("cluster event=(%s) successfully published by node=(%s)", event.Type, x.name)
 				}
-				x.redistributionChan <- event
+				x.rebalancingChan <- event
 			}
 		}
 	}
@@ -1306,16 +1331,36 @@ func (x *actorSystem) peersStateLoop() {
 	x.logger.Info("peers state synchronization has stopped...")
 }
 
-func (x *actorSystem) redistributionLoop() {
-	for event := range x.redistributionChan {
+// rebalancingLoop help perform cluster rebalancing
+func (x *actorSystem) rebalancingLoop() {
+	for event := range x.rebalancingChan {
 		if x.InCluster() {
-			// check for cluster rebalancing
-			if err := x.redistribute(context.Background(), event); err != nil {
-				x.logger.Errorf("cluster rebalancing failed: %v", err)
-				// TODO: panic or retry or shutdown actor system
+			// get peer state
+			peerState, err := x.nodeLeftStateFromEvent(event)
+			if err != nil {
+				x.logger.Error(err)
+				continue
+			}
+
+			ctx := context.Background()
+			if !x.shouldRebalance(ctx, peerState) {
+				continue
+			}
+
+			message := &internalpb.Rebalance{PeerState: peerState}
+			if err := x.supervisor.Tell(ctx, x.rebalancer, message); err != nil {
+				x.logger.Error(err)
 			}
 		}
 	}
+}
+
+// shouldRebalance returns true when the current can perform the cluster rebalancing
+func (x *actorSystem) shouldRebalance(ctx context.Context, peerState *internalpb.PeerState) bool {
+	return !(peerState == nil ||
+		proto.Equal(peerState, new(internalpb.PeerState)) ||
+		len(peerState.GetActors()) == 0 ||
+		!x.cluster.IsLeader(ctx))
 }
 
 // processPeerState processes a given peer synchronization record.
@@ -1360,7 +1405,6 @@ func (x *actorSystem) configPID(ctx context.Context, name string, actor Actor, o
 		withInitMaxRetries(x.actorInitMaxRetries),
 		withCustomLogger(x.logger),
 		withActorSystem(x),
-		withSupervisorDirective(x.supervisorDirective),
 		withEventsStream(x.eventsStream),
 		withInitTimeout(x.actorInitTimeout),
 	}
@@ -1371,13 +1415,21 @@ func (x *actorSystem) configPID(ctx context.Context, name string, actor Actor, o
 		pidOpts = append(pidOpts, withMailbox(spawnConfig.mailbox))
 	}
 
+	// set the supervisor directive
+	if spawnConfig.supervisorDirective != nil {
+		pidOpts = append(pidOpts, withSupervisorDirective(spawnConfig.supervisorDirective))
+	} else {
+		// use the system-wide supervisor directive
+		pidOpts = append(pidOpts, withSupervisorDirective(x.supervisorDirective))
+	}
+
 	// enable stash
 	if x.stashEnabled {
 		pidOpts = append(pidOpts, withStash())
 	}
 
-	// disable passivation for system supervisor
-	if isSystemName(name) {
+	// disable passivation for system actor
+	if isReservedName(name) {
 		pidOpts = append(pidOpts, withPassivationDisabled())
 	} else {
 		pidOpts = append(pidOpts, withPassivationAfter(x.expireActorAfter))
@@ -1396,8 +1448,13 @@ func (x *actorSystem) configPID(ctx context.Context, name string, actor Actor, o
 	return pid, nil
 }
 
-// getSystemActorName returns the system supervisor name
-func (x *actorSystem) getSystemActorName(nameType nameType) string {
+// getCluster returns the cluster engine
+func (x *actorSystem) getCluster() cluster.Interface {
+	return x.cluster
+}
+
+// reservedName returns reserved actor's name
+func (x *actorSystem) reservedName(nameType nameType) string {
 	if x.remotingEnabled.Load() {
 		return fmt.Sprintf(
 			"%s%s%s-%d-%d",
@@ -1414,10 +1471,6 @@ func (x *actorSystem) getSystemActorName(nameType nameType) string {
 		strings.ToTitle(x.name),
 		time.Now().UnixNano(),
 	)
-}
-
-func isSystemName(name string) bool {
-	return strings.HasPrefix(name, systemNamePrefix)
 }
 
 // actorAddress returns the actor path provided the actor name
@@ -1456,6 +1509,67 @@ func (x *actorSystem) configureServer(ctx context.Context, mux *nethttp.ServeMux
 	// set the non-secure http server
 	x.listener = lnr
 	return nil
+}
+
+// nodeLeftStateFromEvent returns the node left state from the cluster event
+func (x *actorSystem) nodeLeftStateFromEvent(event *cluster.Event) (*internalpb.PeerState, error) {
+	if event.Type != cluster.NodeLeft {
+		return nil, nil
+	}
+	nodeLeft := new(goaktpb.NodeLeft)
+	if err := event.Payload.UnmarshalTo(nodeLeft); err != nil {
+		return nil, err
+	}
+
+	return x.getPeerStateFromCache(nodeLeft.GetAddress())
+}
+
+// setHostPort sets the host and port
+func (x *actorSystem) setHostPort() error {
+	remotingHost, remotingPort, err := tcp.GetHostPort(fmt.Sprintf("%s:%d", x.host, x.port))
+	if err != nil {
+		return err
+	}
+
+	x.host = remotingHost
+	x.port = int32(remotingPort)
+	return nil
+}
+
+// spawnSupervisor creates the system supervisor
+func (x *actorSystem) spawnSupervisor(ctx context.Context) error {
+	var err error
+	actorName := x.reservedName(supervisorType)
+	x.supervisor, err = x.configPID(ctx, actorName, newSupervisor())
+	if err != nil {
+		return fmt.Errorf("actor=%s failed to start system supervisor: %w", actorName, err)
+	}
+
+	x.setActor(x.supervisor)
+	return nil
+}
+
+// spawnRebalancer creates the cluster rebalancer
+func (x *actorSystem) spawnRebalancer(ctx context.Context) error {
+	var err error
+	actorName := x.reservedName(rebalancerType)
+	x.rebalancer, err = x.configPID(ctx,
+		actorName,
+		newRebalancer(x.reflection),
+		WithSupervisor(NewResumeDirective()),
+	)
+	if err != nil {
+		return fmt.Errorf("actor=%s failed to start cluster rebalancer: %w", actorName, err)
+	}
+
+	x.setActor(x.rebalancer)
+	x.rebalancer.setParent(x.supervisor)
+	x.supervisor.Watch(x.rebalancer)
+	return nil
+}
+
+func isReservedName(name string) bool {
+	return strings.HasPrefix(name, systemNamePrefix)
 }
 
 // getServer creates an instance of http server

@@ -34,7 +34,7 @@ const (
 	// DefaultInitMaxRetries defines the default value for retrying actor initialization
 	DefaultInitMaxRetries = 5
 	// DefaultShutdownTimeout defines the default shutdown timeout
-	DefaultShutdownTimeout = 2 * time.Second
+	DefaultShutdownTimeout = time.Minute
 	// DefaultInitTimeout defines the default init timeout
 	DefaultInitTimeout = time.Second
 	// DefaultPeerStateLoopInterval defines the default peer state loop interval
@@ -55,6 +55,7 @@ type nameType int
 const (
 	supervisorType nameType = iota
 	routerType
+	rebalancerType
 )
 
 var (
@@ -66,5 +67,6 @@ var (
 	systemNames = map[nameType]string{
 		supervisorType: "GoAktSupervisor",
 		routerType:     "GoAktRouter",
+		rebalancerType: "GoAktRebalancer",
 	}
 )

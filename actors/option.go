@@ -86,6 +86,7 @@ func WithPassivationDisabled() Option {
 }
 
 // WithSupervisorDirective sets the supervisor strategy directive
+// that will be globally used when there is no supervisor directive sets
 func WithSupervisorDirective(directive SupervisorDirective) Option {
 	return OptionFunc(
 		func(a *actorSystem) {
@@ -139,6 +140,9 @@ func WithCluster(config *ClusterConfig) Option {
 }
 
 // WithShutdownTimeout sets the shutdown timeout
+// The timeout needs to be considerable reasonable based upon the total number of actors
+// the system will probably needs. The graceful timeout is shared amongst all actors and children
+// actors created in the system to graceful shutdown via a cancellation context.
 func WithShutdownTimeout(timeout time.Duration) Option {
 	return OptionFunc(
 		func(a *actorSystem) {
