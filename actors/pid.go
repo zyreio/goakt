@@ -36,6 +36,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/flowchartsman/retry"
 	"go.uber.org/atomic"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -79,7 +80,7 @@ type PID struct {
 	// specifies the actor address
 	address *address.Address
 
-	// helps determine whether the actor should handle messags or not.
+	// helps determine whether the actor should handle messages or not.
 	started  atomic.Bool
 	stopping atomic.Bool
 
@@ -690,16 +691,9 @@ func (pid *PID) RemoteTell(ctx context.Context, to *address.Address, message pro
 
 	remoteService := pid.remoting.Client(to.GetHost(), int(to.GetPort()))
 
-	sender := &goaktpb.Address{
-		Host: pid.Address().Host(),
-		Port: int32(pid.Address().Port()),
-		Name: pid.Address().Name(),
-		Id:   pid.Address().ID(),
-	}
-
 	request := &internalpb.RemoteTellRequest{
 		RemoteMessage: &internalpb.RemoteMessage{
-			Sender:   sender,
+			Sender:   pid.Address().Address,
 			Receiver: to.Address,
 			Message:  marshaled,
 		},
@@ -747,16 +741,10 @@ func (pid *PID) RemoteAsk(ctx context.Context, to *address.Address, message prot
 	remoteService := pid.remoting.Client(to.GetHost(), int(to.GetPort()))
 
 	senderAddress := pid.Address()
-	sender := &goaktpb.Address{
-		Host: senderAddress.Host(),
-		Port: int32(senderAddress.Port()),
-		Name: senderAddress.Name(),
-		Id:   senderAddress.ID(),
-	}
 
 	request := &internalpb.RemoteAskRequest{
 		RemoteMessage: &internalpb.RemoteMessage{
-			Sender:   sender,
+			Sender:   senderAddress.Address,
 			Receiver: to.Address,
 			Message:  marshaled,
 		},
@@ -811,13 +799,6 @@ func (pid *PID) RemoteBatchTell(ctx context.Context, to *address.Address, messag
 		return pid.RemoteTell(ctx, to, messages[0])
 	}
 
-	sender := &goaktpb.Address{
-		Host: pid.Address().Host(),
-		Port: int32(pid.Address().Port()),
-		Name: pid.Address().Name(),
-		Id:   pid.Address().ID(),
-	}
-
 	var requests []*internalpb.RemoteTellRequest
 	for _, message := range messages {
 		packed, err := anypb.New(message)
@@ -828,7 +809,7 @@ func (pid *PID) RemoteBatchTell(ctx context.Context, to *address.Address, messag
 		requests = append(
 			requests, &internalpb.RemoteTellRequest{
 				RemoteMessage: &internalpb.RemoteMessage{
-					Sender:   sender,
+					Sender:   pid.Address().Address,
 					Receiver: to.Address,
 					Message:  packed,
 				},
@@ -867,13 +848,6 @@ func (pid *PID) RemoteBatchAsk(ctx context.Context, to *address.Address, message
 		return nil, ErrRemotingDisabled
 	}
 
-	sender := &goaktpb.Address{
-		Host: pid.Address().Host(),
-		Port: int32(pid.Address().Port()),
-		Name: pid.Address().Name(),
-		Id:   pid.Address().ID(),
-	}
-
 	var requests []*internalpb.RemoteAskRequest
 	for _, message := range messages {
 		packed, err := anypb.New(message)
@@ -884,7 +858,7 @@ func (pid *PID) RemoteBatchAsk(ctx context.Context, to *address.Address, message
 		requests = append(
 			requests, &internalpb.RemoteAskRequest{
 				RemoteMessage: &internalpb.RemoteMessage{
-					Sender:   sender,
+					Sender:   pid.Address().Address,
 					Receiver: to.Address,
 					Message:  packed,
 				},
@@ -1225,20 +1199,29 @@ func (pid *PID) freeWatchers(ctx context.Context) error {
 	logger.Debugf("%s freeing all watcher actors...", pid.ID())
 	watchers := pid.watchers()
 	if watchers.Len() > 0 {
+		eg, ctx := errgroup.WithContext(ctx)
 		for _, watcher := range watchers.Items() {
-			terminated := &goaktpb.Terminated{
-				ActorId: pid.ID(),
-			}
-
-			if watcher.IsRunning() {
-				logger.Debugf("watcher=(%s) releasing watched=(%s)", watcher.ID(), pid.ID())
-				if err := pid.Tell(ctx, watcher, terminated); err != nil {
-					return err
+			watcher := watcher
+			eg.Go(func() error {
+				terminated := &goaktpb.Terminated{
+					ActorId: pid.ID(),
 				}
 
-				watcher.UnWatch(pid)
-				logger.Debugf("watcher=(%s) released watched=(%s)", watcher.ID(), pid.ID())
-			}
+				if watcher.IsRunning() {
+					logger.Debugf("watcher=(%s) releasing watched=(%s)", watcher.ID(), pid.ID())
+					if err := pid.Tell(ctx, watcher, terminated); err != nil {
+						return err
+					}
+
+					watcher.UnWatch(pid)
+					logger.Debugf("watcher=(%s) released watched=(%s)", watcher.ID(), pid.ID())
+				}
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			logger.Errorf("watcher=(%s) failed to free all watcher error: %v", pid.ID(), err)
+			return err
 		}
 		logger.Debugf("%s successfully frees all watcher actors...", pid.ID())
 		return nil
@@ -1253,17 +1236,26 @@ func (pid *PID) freeWatchees(ctx context.Context) error {
 	logger.Debugf("%s freeing all watched actors...", pid.ID())
 	size := pid.watcheesMap.Size()
 	if size > 0 {
+		eg, ctx := errgroup.WithContext(ctx)
 		for _, watched := range pid.watcheesMap.List() {
-			logger.Debugf("watcher=(%s) unwatching actor=(%s)", pid.ID(), watched.ID())
-			pid.UnWatch(watched)
-			if err := watched.Shutdown(ctx); err != nil {
-				errwrap := fmt.Errorf(
-					"watcher=(%s) failed to unwatch actor=(%s): %w",
-					pid.ID(), watched.ID(), err,
-				)
-				return errwrap
-			}
-			logger.Debugf("watcher=(%s) successfully unwatch actor=(%s)", pid.ID(), watched.ID())
+			watched := watched
+			eg.Go(func() error {
+				logger.Debugf("watcher=(%s) unwatching actor=(%s)", pid.ID(), watched.ID())
+				pid.UnWatch(watched)
+				if err := watched.Shutdown(ctx); err != nil {
+					errwrap := fmt.Errorf(
+						"watcher=(%s) failed to unwatch actor=(%s): %w",
+						pid.ID(), watched.ID(), err,
+					)
+					return errwrap
+				}
+				logger.Debugf("watcher=(%s) successfully unwatch actor=(%s)", pid.ID(), watched.ID())
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			logger.Errorf("watcher=(%s) failed to unwatch actors: %v", pid.ID(), err)
+			return err
 		}
 		logger.Debugf("%s successfully unwatch all watched actors...", pid.ID())
 		return nil
@@ -1278,18 +1270,27 @@ func (pid *PID) freeChildren(ctx context.Context) error {
 	logger.Debugf("%s freeing all child actors...", pid.ID())
 	size := pid.childrenMap.Size()
 	if size > 0 {
+		eg, ctx := errgroup.WithContext(ctx)
 		for _, child := range pid.Children() {
-			logger.Debugf("parent=(%s) disowning child=(%s)", pid.ID(), child.ID())
-			pid.UnWatch(child)
-			pid.childrenMap.Remove(child.Address())
-			if err := child.Shutdown(ctx); err != nil {
-				errwrap := fmt.Errorf(
-					"parent=(%s) failed to disown child=(%s): %w", pid.ID(), child.ID(),
-					err,
-				)
-				return errwrap
-			}
-			logger.Debugf("parent=(%s) successfully disown child=(%s)", pid.ID(), child.ID())
+			child := child
+			eg.Go(func() error {
+				logger.Debugf("parent=(%s) disowning child=(%s)", pid.ID(), child.ID())
+				pid.UnWatch(child)
+				pid.childrenMap.Remove(child.Address())
+				if err := child.Shutdown(ctx); err != nil {
+					errwrap := fmt.Errorf(
+						"parent=(%s) failed to disown child=(%s): %w", pid.ID(), child.ID(),
+						err,
+					)
+					return errwrap
+				}
+				logger.Debugf("parent=(%s) successfully disown child=(%s)", pid.ID(), child.ID())
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			logger.Errorf("parent=(%s) failed to free all child actors: %v", pid.ID(), err)
+			return err
 		}
 		logger.Debugf("%s successfully free all child actors...", pid.ID())
 		return nil
