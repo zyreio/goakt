@@ -285,10 +285,10 @@ func NewActorSystem(name string, opts ...Option) (ActorSystem, error) {
 		opt.Apply(system)
 	}
 
-	// set the host and port
-	if err := system.setHostPort(); err != nil {
-		return nil, err
-	}
+	// // set the host and port
+	// if err := system.setHostPort(); err != nil {
+	// 	return nil, err
+	// }
 
 	// we need to make sure the cluster kinds are defined
 	if system.clusterEnabled.Load() {
