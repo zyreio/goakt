@@ -869,7 +869,7 @@ func (x *actorSystem) RemoteTell(ctx context.Context, stream *connect.ClientStre
 		func() error {
 			for request := range requestc {
 				receiver := request.GetRemoteMessage().GetReceiver()
-				addr := address.New(receiver.GetName(), x.Name(), receiver.GetHost(), int(receiver.GetPort()))
+				addr := address.New(receiver.GetName(), x.Name(), x.host, int(receiver.GetPort()))
 				pid, exist := x.actors.Get(addr)
 				if !exist {
 					logger.Error(ErrAddressNotFound(addr.String()).Error())
