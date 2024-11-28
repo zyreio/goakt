@@ -67,21 +67,21 @@ func NewServer(ctx context.Context, host string, port int, mux *http.ServeMux) *
 		// The maximum duration for reading the entire request, including the body.
 		// It’s implemented in net/http by calling SetReadDeadline immediately after Accept
 		// ReadTimeout := handler_timeout + ReadHeaderTimeout + wiggle_room
-		ReadTimeout: 3 * time.Second,
+		// ReadTimeout: 3 * time.Second,
 		// ReadHeaderTimeout is the amount of time allowed to read request headers
-		ReadHeaderTimeout: time.Second,
+		// ReadHeaderTimeout: time.Second,
 		// WriteTimeout is the maximum duration before timing out writes of the response.
 		// It is reset whenever a new request’s header is read.
 		// This effectively covers the lifetime of the ServeHTTP handler stack
-		WriteTimeout: time.Second,
+		// WriteTimeout: time.Second,
 		// IdleTimeout is the maximum amount of time to wait for the next request when keep-alive are enabled.
 		// If IdleTimeout is zero, the value of ReadTimeout is used. Not relevant to request timeouts
-		IdleTimeout: 1200 * time.Second,
+		// IdleTimeout: 1200 * time.Second,
 		// For gRPC clients, it's convenient to support HTTP/2 without TLS. You can
 		// avoid x/net/http2 by using http.ListenAndServeTLS.
 		Handler: h2c.NewHandler(
 			mux, &http2.Server{
-				IdleTimeout: 1200 * time.Second,
+				// IdleTimeout: 1200 * time.Second,
 			},
 		),
 		BaseContext: func(_ net.Listener) context.Context {
