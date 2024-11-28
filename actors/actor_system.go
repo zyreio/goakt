@@ -821,7 +821,7 @@ func (x *actorSystem) RemoteLookup(ctx context.Context, request *connect.Request
 		return connect.NewResponse(&internalpb.RemoteLookupResponse{Address: actor.GetActorAddress()}), nil
 	}
 
-	addr := address.New(msg.GetName(), x.Name(), msg.GetHost(), int(msg.GetPort()))
+	addr := address.New(msg.GetName(), x.Name(), x.host, int(msg.GetPort()))
 	pidNode, exist := x.actors.GetNode(addr.String())
 	if !exist {
 		logger.Error(ErrAddressNotFound(addr.String()).Error())
