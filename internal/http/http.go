@@ -31,7 +31,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -52,8 +51,8 @@ func NewClient() *http.Client {
 				// allow-list.
 				return net.Dial(network, addr)
 			},
-			PingTimeout:     30 * time.Second,
-			ReadIdleTimeout: 30 * time.Second,
+			// PingTimeout: 30 * time.Second,
+			// ReadIdleTimeout: 30 * time.Second,
 		},
 	}
 }
