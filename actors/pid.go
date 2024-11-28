@@ -39,6 +39,7 @@ import (
 	"go.uber.org/atomic"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -897,6 +898,45 @@ func (pid *PID) RemoteBatchTell(ctx context.Context, to *address.Address, messag
 	}
 
 	return nil
+}
+
+func (pid *PID) RemoteTellChan(ctx context.Context, to *address.Address) (chan protoreflect.ProtoMessage, error) {
+	m := make(chan protoreflect.ProtoMessage)
+	remoteService := pid.remoting.Client(to.GetHost(), int(to.GetPort()))
+	stream := remoteService.RemoteTell(ctx)
+
+	go func() {
+		defer close(m)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case message := <-m:
+				packed, err := anypb.New(message)
+				if err != nil {
+					panic(err)
+				}
+
+				if err := stream.Send(&internalpb.RemoteTellRequest{
+					RemoteMessage: &internalpb.RemoteMessage{
+						Sender:   pid.Address().Address,
+						Receiver: to.Address,
+						Message:  packed,
+					},
+				}); err != nil {
+					if eof(err) {
+						if _, err := stream.CloseAndReceive(); err != nil {
+							panic(err)
+						}
+						return
+					}
+					panic(err)
+				}
+			}
+		}
+	}()
+
+	return m, nil
 }
 
 // RemoteBatchAsk sends a synchronous bunch of messages to a remote actor and expect responses in the same order as the messages.
