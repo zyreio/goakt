@@ -901,7 +901,7 @@ func (pid *PID) RemoteBatchTell(ctx context.Context, to *address.Address, messag
 }
 
 func (pid *PID) RemoteTellStream(ctx context.Context, to *address.Address) (func(protoreflect.ProtoMessage) error, error) {
-	remoteService := pid.remoting.Client(to.GetHost(), int(to.GetPort()))
+	remoteService := pid.remoting.serviceClient(to.GetHost(), int(to.GetPort()))
 	stream := remoteService.RemoteTell(ctx)
 
 	return func(message protoreflect.ProtoMessage) error {
