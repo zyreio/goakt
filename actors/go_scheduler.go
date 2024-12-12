@@ -22,34 +22,26 @@
  * SOFTWARE.
  */
 
-package slice
+package actors
 
-import (
-	"testing"
+// goScheduler is a custom go routines scheduler
+// this will help schedule actors message processing
+type goScheduler struct {
+	throughput int
+}
 
-	"github.com/stretchr/testify/assert"
-)
+// Schedule schedules a function in a go routine to be executed
+func (s *goScheduler) Schedule(fn func()) {
+	go fn()
+}
 
-func TestSlice(t *testing.T) {
-	// create a concurrent slice of integer
-	sl := NewLockFree[int]()
+// Throughput returns the scheduler throughput
+// The throughput helps yield back control to other go routines
+func (s *goScheduler) Throughput() int {
+	return s.throughput
+}
 
-	// add some items
-	sl.Append(2)
-	sl.Append(4)
-	sl.Append(5)
-
-	// assert the length
-	assert.EqualValues(t, 3, sl.Len())
-	assert.NotEmpty(t, sl.Items())
-	assert.Len(t, sl.Items(), 3)
-	// get the element at index 2
-	assert.EqualValues(t, 5, sl.Get(2))
-	// remove the element at index 1
-	sl.Delete(1)
-	// assert the length
-	assert.EqualValues(t, 2, sl.Len())
-	assert.Zero(t, sl.Get(4))
-	sl.Reset()
-	assert.Zero(t, sl.Len())
+// newGoScheduler creates an instance of goScheduler
+func newGoScheduler(capacity int) *goScheduler {
+	return &goScheduler{throughput: capacity}
 }

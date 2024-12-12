@@ -22,28 +22,34 @@
  * SOFTWARE.
  */
 
-package actors
+package slice
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestSpawnOption(t *testing.T) {
-	mailbox := NewUnboundedMailbox()
-	config := &spawnConfig{}
-	option := WithMailbox(mailbox)
-	option.Apply(config)
-	require.Equal(t, &spawnConfig{mailbox: mailbox}, config)
-	strategy := NewSupervisorStrategy(PanicError{}, NewStopDirective())
-	option = WithSupervisorStrategies(strategy)
-	option.Apply(config)
-	require.Equal(t, &spawnConfig{mailbox: mailbox, supervisorStrategies: []*SupervisorStrategy{strategy}}, config)
-}
+func TestSlice(t *testing.T) {
+	// create a concurrent slice of integer
+	sl := NewThreadSafe[int]()
 
-func TestNewSpawnConfig(t *testing.T) {
-	config := newSpawnConfig()
-	require.NotNil(t, config)
-	require.Nil(t, config.mailbox)
+	// add some items
+	sl.Append(2)
+	sl.Append(4)
+	sl.Append(5)
+
+	// assert the length
+	assert.EqualValues(t, 3, sl.Len())
+	assert.NotEmpty(t, sl.Items())
+	assert.Len(t, sl.Items(), 3)
+	// get the element at index 2
+	assert.EqualValues(t, 5, sl.Get(2))
+	// remove the element at index 1
+	sl.Delete(1)
+	// assert the length
+	assert.EqualValues(t, 2, sl.Len())
+	assert.Zero(t, sl.Get(4))
+	sl.Reset()
+	assert.Zero(t, sl.Len())
 }

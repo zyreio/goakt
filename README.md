@@ -152,14 +152,22 @@ When cluster mode is enabled, passivated actors are removed from the entire clus
 ### Supervision
 
 In GoAkt, supervision allows to define the various strategies to apply when a given actor is faulty.
-The supervisory strategy to adopt is set during the creation of the actor system.
+**_The supervisory strategies to adopt are to be set during the creation of the actor_**. One can set as many as he/she wants supervisor strategies based upon various error types using the `SpawnOption` method `WithSupervisorStrategies`.
+To create a supervisor strategy one needs to call the `NewSupervisorStrategy` function and pass _the error type_ and the corresponding _directive_.
+GoAkt comes bundled with the following default supervisor strategies that can be overriden when creating an actor: 
+- `NewSupervisorStrategy(PanicError{}, NewStopDirective())`: this will stop the faulty actor in case of panic.
+- `NewSupervisorStrategy(&runtime.PanicNilError{}, NewStopDirective())`: this will stop the faulty actor for nil panic error
+
+Note: GoAkt will suspend a faulty actor when there is no supervisor strategy set in place for the corresponding error type. Once can check the state of the actor using the `IsSuspended` method on the `PID`.
+A suspended actor can be restarted or shutdown, however it cannot handle any messages sent to it.
+
 In GoAkt each child actor is treated separately. There is no concept of one-for-one and one-for-all strategies.
 The following directives are supported:
 - [`Restart`](./actors/supervisor_directive.go): to restart the child actor. One can control how the restart is done using the following options: - `maxNumRetries`: defines the maximum of restart attempts - `timeout`: how to attempt restarting the faulty actor.
-- [`Stop`](./actors/supervisor_directive.go): to stop the child actor which is the default one
+- [`Stop`](./actors/supervisor_directive.go): to stop the child actor which is the default one as long as its descendants.
 - [`Resume`](./actors/supervisor_directive.go): ignores the failure and process the next message, instead.
 
-With the `Restart` directive, every child actor of the faulty is stopped and garbage-collected when the given parent is restarted. This helps avoid resources leaking.
+With the `Restart` directive, only the direct alive children of the given actor will be shudown and respawned with their initial state.
 There are only two scenarios where an actor can supervise another actor:
 - It watches the given actor via the `Watch` method. With this method the parent actor can also listen to the `Terminated` message to decide what happens next to the child actor.
 - The actor to be supervised is a child of the given actor.
@@ -218,6 +226,7 @@ GoAkt comes with the following mailboxes built-in:
 
 - [`UnboundedMailbox`](./actors/unbounded_mailbox.go): this is the default mailbox. It is implemented using the lock-free Multi-Producer-Single-Consumer Queue.
 - [`BoundedMailbox`](./actors/bounded_mailbox.go): this is a thread-safe mailbox implemented using the Ring-Buffer Queue. When the mailbox is full any new message is sent to the deadletter queue. Setting a reasonable capacity for the queue can enhance throughput.
+- [`UnboundedPriorityMailbox`](./actors/unbounded_priority_mailbox.go): this is thread-safe mailbox using the standard library container/heap. At the moment the performance of is this mailbox is not comparable to the two other built-in mailboxes.
 
 ### Events Stream
 
@@ -252,6 +261,7 @@ The choice of protobuf is due to easy serialization over wire and strong schema 
 - `SendSync` - behave the same way as `Asks` except the location of the provided actor is transparent. This is possible when cluster mode is enabled.
 - `Forward` - pass a message from one actor to the actor by preserving the initial sender of the message.
   At the moment you can only forward messages from the `ReceiveContext` when handling a message within an actor and this to a local actor.
+- `ForwardTo` - behave the same as `Forward` but when cluster mode is enabled.
 - `BatchTell` - send a bulk of messages to actor in a fire-forget manner. Messages are processed one after the other in the other they have been sent.
 - `BatchAsk` - send a bulk of messages to an actor and expect responses for each message sent within a time period. Messages are processed one after the other in the other they were sent.
   This help return the response of each message in the same order that message was sent. This method hinders performance drastically when the number of messages to sent is high.
@@ -319,6 +329,7 @@ creating the actor system. See actor system [options](./actors/option.go). These
 - `RemoteReSpawn`: to restarts an actor on a remote machine
 - `RemoteStop`: to stop an actor on a remote machine
 - `RemoteSpawn`: to start an actor on a remote machine. The given actor implementation must be registered using the [`Register`](./actors/actor_system.go) method of the actor system on the remote machine for this call to succeed.
+- `RemoteForward`: to pass a message from one actor to the actor by preserving the initial sender of the message.
 
 These methods can be found as well as on the [PID](./actors/pid.go) which is the actor reference when an actor is created.
 
@@ -359,7 +370,7 @@ To test that an actor receive and respond to messages one will have to:
 1. Create an instance of the testkit: `testkit := New(ctx, t)` where `ctx` is a go context and `t` the instance of `*testing.T`. This can be done in setup before the run of each test.
 2. Create the instance of the actor under test. Example: `pinger := testkit.Spawn(ctx, "pinger", &pinger{})`
 3. Create an instance of test probe: `probe := testkit.NewProbe(ctx)` where `ctx` is a go context. One can set some [options](./testkit/option.go)
-4. Use the probe to send a message to the actor under test. Example: `probe.Send(pinger, new(testpb.Ping))`
+4. Use the probe to send a message to the actor under test. Example: `probe.Send(pinger, new(testpb.Ping))` for _a Tell assertion_ and `probe.SendSync(pinger, new(testpb.Ping), time.Second)` for _an Ask assertion_.
 5. Assert that the actor under test has received the message and responded as expected using the probe methods:
 
 - `ExpectMessage(message proto.Message)`: asserts that the message received from the test actor is the expected one

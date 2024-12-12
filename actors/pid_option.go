@@ -62,11 +62,16 @@ func withActorSystem(sys ActorSystem) pidOption {
 	}
 }
 
-// withSupervisorDirective sets the supervisor strategy to used when dealing
-// with child actors
-func withSupervisorDirective(directive SupervisorDirective) pidOption {
+// withSupervisorStrategies defines the supervisor strategies
+func withSupervisorStrategies(strategies ...*SupervisorStrategy) pidOption {
 	return func(pid *PID) {
-		pid.supervisorDirective = directive
+		if pid.supervisorStrategies == nil {
+			pid.supervisorStrategies = newStrategiesMap()
+		}
+
+		for _, strategy := range strategies {
+			pid.supervisorStrategies.Put(strategy)
+		}
 	}
 }
 
@@ -109,12 +114,5 @@ func withInitTimeout(duration time.Duration) pidOption {
 func withRemoting(remoting *Remoting) pidOption {
 	return func(pid *PID) {
 		pid.remoting = remoting
-	}
-}
-
-// withParent sets the parent id
-func withParent(parent *PID) pidOption {
-	return func(pid *PID) {
-		pid.parent = parent
 	}
 }

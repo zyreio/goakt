@@ -45,13 +45,13 @@ var pool = sync.Pool{
 	},
 }
 
-// contextFromPool retrieves a message from the pool
-func contextFromPool() *ReceiveContext {
+// getContext retrieves a message from the pool
+func getContext() *ReceiveContext {
 	return pool.Get().(*ReceiveContext)
 }
 
-// returnToPool sends the message context back to the pool
-func returnToPool(receiveContext *ReceiveContext) {
+// releaseContext sends the message context back to the pool
+func releaseContext(receiveContext *ReceiveContext) {
 	receiveContext.reset()
 	pool.Put(receiveContext)
 }
@@ -330,15 +330,59 @@ func (rctx *ReceiveContext) Stop(child *PID) {
 // As a result, the actor receiving the forwarded messages knows who the actual sender of the message is.
 // The message that is forwarded is the current message received by the received context.
 // This operation does nothing when the receiving actor has not started
+// This method can only be used on a single node actor system because the actor reference PID is needed
 func (rctx *ReceiveContext) Forward(to *PID) {
 	message := rctx.Message()
 	sender := rctx.Sender()
 
 	if to.IsRunning() {
 		ctx := context.WithoutCancel(rctx.ctx)
-		receiveContext := contextFromPool()
+		receiveContext := getContext()
 		receiveContext.build(ctx, sender, to, message, true)
 		to.doReceive(receiveContext)
+	}
+}
+
+// ForwardTo method works similarly to the Tell() method except that the sender of a forwarded message is kept as the original sender.
+// As a result, the actor receiving the forwarded messages knows who the actual sender of the message is.
+// The message that is forwarded is the current message received by the received context.
+// This operation does nothing when the receiving actor has not started
+// This method is only when the actor system is in the cluster mode because it is location transparent.
+func (rctx *ReceiveContext) ForwardTo(actorName string) {
+	message := rctx.Message()
+	sender := rctx.Sender()
+	ctx := context.WithoutCancel(rctx.ctx)
+	if rctx.ActorSystem().InCluster() {
+		if err := sender.SendAsync(ctx, actorName, message); err != nil {
+			rctx.Err(err)
+		}
+	}
+}
+
+// RemoteForward method works similarly to the RemoteTell() method except that the sender of a forwarded message is kept as the original sender.
+// As a result, the actor receiving the forwarded messages knows who the actual sender of the message is.
+// The message that is forwarded is the current message received by the received context.
+// This method can only be used when remoting is enabled on the running actor system
+func (rctx *ReceiveContext) RemoteForward(to *address.Address) {
+	sender := rctx.Sender()
+	remoteSender := rctx.RemoteSender()
+	remoting := rctx.Self().remoting
+
+	if !sender.Equals(NoSender) {
+		message := rctx.Message()
+		ctx := context.WithoutCancel(rctx.ctx)
+		if err := sender.RemoteTell(ctx, to, message); err != nil {
+			rctx.Err(err)
+		}
+		return
+	}
+
+	if !remoteSender.Equals(address.NoSender()) && remoting != nil {
+		message := rctx.Message()
+		ctx := context.WithoutCancel(rctx.ctx)
+		if err := remoting.RemoteTell(ctx, remoteSender, to, message); err != nil {
+			rctx.Err(err)
+		}
 	}
 }
 
@@ -367,13 +411,6 @@ func (rctx *ReceiveContext) PipeTo(to *PID, task future.Task) {
 	if err := recipient.PipeTo(ctx, to, task); err != nil {
 		rctx.Err(err)
 	}
-}
-
-// Parent returns the parent of the given actor
-// in case the receiving actor is a child actor
-// this is just a convenient method
-func (rctx *ReceiveContext) Parent() *PID {
-	return rctx.self.Parent()
 }
 
 // Logger returns the logger used in the actor system

@@ -22,42 +22,51 @@
  * SOFTWARE.
  */
 
-package actors
+package timer
 
 import (
 	"sync"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/travisjeffery/go-dynaport"
-
-	"github.com/tochemey/goakt/v2/address"
+	"time"
 )
 
-func TestPIDMap(t *testing.T) {
-	ports := dynaport.Get(1)
-	// create the actor path
-	actorPath := address.New("Test", "TestSys", "host", ports[0])
-	// create the PID
-	actorRef := &PID{address: actorPath, fieldsLocker: &sync.RWMutex{}, stopLocker: &sync.Mutex{}}
-	// create a new PID map
-	pidMap := newMap()
-	// add to the map
-	pidMap.Set(actorRef)
-	// assert the length of the map
-	assert.EqualValues(t, 1, pidMap.Size())
-	// list the map
-	lst := pidMap.List()
-	assert.Len(t, lst, 1)
-	// fetch the inserted pid back
-	actual, ok := pidMap.Get(actorPath)
-	assert.True(t, ok)
-	assert.NotNil(t, actual)
-	assert.IsType(t, new(PID), actual)
-	// remove the pid from the map
-	pidMap.Remove(actorPath)
-	// list the map
-	lst = pidMap.List()
-	assert.Len(t, lst, 0)
-	assert.EqualValues(t, 0, pidMap.Size())
+// Pool defines a timer pool
+type Pool struct {
+	pool sync.Pool
+}
+
+// NewPool creates an instance of Pool
+func NewPool() *Pool {
+	return &Pool{
+		pool: sync.Pool{
+			New: func() interface{} {
+				return time.NewTimer(5 * time.Second)
+			},
+		},
+	}
+}
+
+// Get returns a timer
+func (tp *Pool) Get(timeout time.Duration) *time.Timer {
+	timer := tp.pool.Get().(*time.Timer)
+	if !timer.Stop() {
+		// Drain the channel to reset the timer
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	timer.Reset(timeout)
+	return timer
+}
+
+// Put the timer back to the pool
+func (tp *Pool) Put(timer *time.Timer) {
+	if !timer.Stop() {
+		// Drain the channel to avoid leaks
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	tp.pool.Put(timer)
 }

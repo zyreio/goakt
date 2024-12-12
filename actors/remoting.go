@@ -62,16 +62,16 @@ func NewRemoting() *Remoting {
 }
 
 // RemoteTell sends a message to an actor remotely without expecting any reply
-func (r *Remoting) RemoteTell(ctx context.Context, to *address.Address, message proto.Message) error {
+func (r *Remoting) RemoteTell(ctx context.Context, from, to *address.Address, message proto.Message) error {
 	marshaled, err := anypb.New(message)
 	if err != nil {
 		return ErrInvalidMessage(err)
 	}
 
-	remoteClient := r.Client(to.GetHost(), int(to.GetPort()))
+	remoteClient := r.serviceClient(to.GetHost(), int(to.GetPort()))
 	request := &internalpb.RemoteTellRequest{
 		RemoteMessage: &internalpb.RemoteMessage{
-			Sender:   address.NoSender,
+			Sender:   from.Address,
 			Receiver: to.Address,
 			Message:  marshaled,
 		},
@@ -97,16 +97,16 @@ func (r *Remoting) RemoteTell(ctx context.Context, to *address.Address, message 
 }
 
 // RemoteAsk sends a synchronous message to another actor remotely and expect a response.
-func (r *Remoting) RemoteAsk(ctx context.Context, to *address.Address, message proto.Message, timeout time.Duration) (response *anypb.Any, err error) {
+func (r *Remoting) RemoteAsk(ctx context.Context, from, to *address.Address, message proto.Message, timeout time.Duration) (response *anypb.Any, err error) {
 	marshaled, err := anypb.New(message)
 	if err != nil {
 		return nil, ErrInvalidMessage(err)
 	}
 
-	remoteClient := r.Client(to.GetHost(), int(to.GetPort()))
+	remoteClient := r.serviceClient(to.GetHost(), int(to.GetPort()))
 	request := &internalpb.RemoteAskRequest{
 		RemoteMessage: &internalpb.RemoteMessage{
-			Sender:   address.NoSender,
+			Sender:   from.Address,
 			Receiver: to.Address,
 			Message:  marshaled,
 		},
@@ -151,7 +151,7 @@ func (r *Remoting) RemoteAsk(ctx context.Context, to *address.Address, message p
 
 // RemoteLookup look for an actor address on a remote node.
 func (r *Remoting) RemoteLookup(ctx context.Context, host string, port int, name string) (addr *address.Address, err error) {
-	remoteClient := r.Client(host, port)
+	remoteClient := r.serviceClient(host, port)
 	request := connect.NewRequest(
 		&internalpb.RemoteLookupRequest{
 			Host: host,
@@ -173,7 +173,7 @@ func (r *Remoting) RemoteLookup(ctx context.Context, host string, port int, name
 }
 
 // RemoteBatchTell sends bulk asynchronous messages to an actor
-func (r *Remoting) RemoteBatchTell(ctx context.Context, to *address.Address, messages []proto.Message) error {
+func (r *Remoting) RemoteBatchTell(ctx context.Context, from, to *address.Address, messages []proto.Message) error {
 	var requests []*internalpb.RemoteTellRequest
 	for _, message := range messages {
 		packed, err := anypb.New(message)
@@ -184,7 +184,7 @@ func (r *Remoting) RemoteBatchTell(ctx context.Context, to *address.Address, mes
 		requests = append(
 			requests, &internalpb.RemoteTellRequest{
 				RemoteMessage: &internalpb.RemoteMessage{
-					Sender:   address.NoSender,
+					Sender:   from.Address,
 					Receiver: to.Address,
 					Message:  packed,
 				},
@@ -192,7 +192,7 @@ func (r *Remoting) RemoteBatchTell(ctx context.Context, to *address.Address, mes
 		)
 	}
 
-	remoteClient := r.Client(to.GetHost(), int(to.GetPort()))
+	remoteClient := r.serviceClient(to.GetHost(), int(to.GetPort()))
 	stream := remoteClient.RemoteTell(ctx)
 	for _, request := range requests {
 		err := stream.Send(request)
@@ -217,7 +217,7 @@ func (r *Remoting) RemoteBatchTell(ctx context.Context, to *address.Address, mes
 }
 
 // RemoteBatchAsk sends bulk messages to an actor with responses expected
-func (r *Remoting) RemoteBatchAsk(ctx context.Context, to *address.Address, messages []proto.Message, timeout time.Duration) (responses []*anypb.Any, err error) {
+func (r *Remoting) RemoteBatchAsk(ctx context.Context, from, to *address.Address, messages []proto.Message, timeout time.Duration) (responses []*anypb.Any, err error) {
 	var requests []*internalpb.RemoteAskRequest
 	for _, message := range messages {
 		packed, err := anypb.New(message)
@@ -228,7 +228,7 @@ func (r *Remoting) RemoteBatchAsk(ctx context.Context, to *address.Address, mess
 		requests = append(
 			requests, &internalpb.RemoteAskRequest{
 				RemoteMessage: &internalpb.RemoteMessage{
-					Sender:   address.NoSender,
+					Sender:   from.Address,
 					Receiver: to.Address,
 					Message:  packed,
 				},
@@ -237,7 +237,7 @@ func (r *Remoting) RemoteBatchAsk(ctx context.Context, to *address.Address, mess
 		)
 	}
 
-	remoteClient := r.Client(to.GetHost(), int(to.GetPort()))
+	remoteClient := r.serviceClient(to.GetHost(), int(to.GetPort()))
 	stream := remoteClient.RemoteAsk(ctx)
 	errc := make(chan error, 1)
 
@@ -279,7 +279,7 @@ func (r *Remoting) RemoteBatchAsk(ctx context.Context, to *address.Address, mess
 
 // RemoteSpawn creates an actor on a remote node. The given actor needs to be registered on the remote node using the Register method of ActorSystem
 func (r *Remoting) RemoteSpawn(ctx context.Context, host string, port int, name, actorType string) error {
-	remoteClient := r.Client(host, port)
+	remoteClient := r.serviceClient(host, port)
 	request := connect.NewRequest(
 		&internalpb.RemoteSpawnRequest{
 			Host:      host,
@@ -306,7 +306,7 @@ func (r *Remoting) RemoteSpawn(ctx context.Context, host string, port int, name,
 
 // RemoteReSpawn restarts actor on a remote node.
 func (r *Remoting) RemoteReSpawn(ctx context.Context, host string, port int, name string) error {
-	remoteClient := r.Client(host, port)
+	remoteClient := r.serviceClient(host, port)
 	request := connect.NewRequest(
 		&internalpb.RemoteReSpawnRequest{
 			Host: host,
@@ -328,7 +328,7 @@ func (r *Remoting) RemoteReSpawn(ctx context.Context, host string, port int, nam
 
 // RemoteStop stops an actor on a remote node.
 func (r *Remoting) RemoteStop(ctx context.Context, host string, port int, name string) error {
-	remoteClient := r.Client(host, port)
+	remoteClient := r.serviceClient(host, port)
 	request := connect.NewRequest(
 		&internalpb.RemoteStopRequest{
 			Host: host,
@@ -348,13 +348,13 @@ func (r *Remoting) RemoteStop(ctx context.Context, host string, port int, name s
 	return nil
 }
 
-// Close closes the Client connection
+// Close closes the serviceClient connection
 func (r *Remoting) Close() {
 	r.client.CloseIdleConnections()
 }
 
-// Client returns a Remoting service client instance
-func (r *Remoting) Client(host string, port int) internalpbconnect.RemotingServiceClient {
+// serviceClient returns a Remoting service client instance
+func (r *Remoting) serviceClient(host string, port int) internalpbconnect.RemotingServiceClient {
 	endpoint := http.URL(host, port)
 	return internalpbconnect.NewRemotingServiceClient(r.client, endpoint)
 }

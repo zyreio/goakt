@@ -25,6 +25,8 @@
 package lib
 
 import (
+	"log"
+	"runtime"
 	"time"
 
 	"github.com/tochemey/goakt/v2/internal/types"
@@ -38,4 +40,11 @@ func Pause(duration time.Duration) {
 	})
 	<-stopCh
 	timer.Stop()
+}
+
+// Debug is used this to detect if a goroutine is stuck
+func Debug() {
+	buf := make([]byte, 1<<20)
+	runtime.Stack(buf, true)
+	log.Printf("%s", buf)
 }

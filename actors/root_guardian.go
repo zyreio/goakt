@@ -22,35 +22,53 @@
  * SOFTWARE.
  */
 
-package bench
+package actors
 
 import (
 	"context"
 
-	"github.com/tochemey/goakt/v2/actors"
-	"github.com/tochemey/goakt/v2/bench/benchmarkpb"
 	"github.com/tochemey/goakt/v2/goaktpb"
+	"github.com/tochemey/goakt/v2/log"
 )
 
-type Benchmarker struct {
+// rootGuardian defines the system root actor
+// its job is to monitor the userGuardian and the systemGuardian
+// when either of those actors get terminated, the actorSystem is shutdown.
+type rootGuardian struct {
+	pid    *PID
+	logger log.Logger
 }
 
-func (p *Benchmarker) PreStart(context.Context) error {
+// enforce compilation error
+var _ Actor = (*rootGuardian)(nil)
+
+// newRootGuardian creates an instance of the rootGuardian
+func newRootGuardian() *rootGuardian {
+	return &rootGuardian{}
+}
+
+// PreStart pre-starts the actor.
+func (r *rootGuardian) PreStart(context.Context) error {
 	return nil
 }
 
-func (p *Benchmarker) Receive(ctx *actors.ReceiveContext) {
-	switch ctx.Message().(type) {
+// Receive handles message
+func (r *rootGuardian) Receive(ctx *ReceiveContext) {
+	switch msg := ctx.Message().(type) {
 	case *goaktpb.PostStart:
-	case *benchmarkpb.BenchTell:
-	case *benchmarkpb.BenchRequest:
-		ctx.Response(&benchmarkpb.BenchResponse{})
-	case *benchmarkpb.BenchPriorityMailbox:
+		r.pid = ctx.Self()
+		r.logger = ctx.Logger()
+		r.logger.Infof("%s started successfully", r.pid.Name())
+	case *goaktpb.Terminated:
+		r.pid.logger.Debugf("%s terminated", msg.GetActorId())
+		// TODO: decide what to do the actor
 	default:
-		ctx.Unhandled()
+		// pass
 	}
 }
 
-func (p *Benchmarker) PostStop(context.Context) error {
+// PostStop is executed when the actor is shutting down.
+func (r *rootGuardian) PostStop(context.Context) error {
+	r.logger.Infof("%s stopped successfully", r.pid.Name())
 	return nil
 }

@@ -25,25 +25,44 @@
 package actors
 
 import (
-	"testing"
+	"sync/atomic"
 
-	"github.com/stretchr/testify/require"
+	"github.com/tochemey/goakt/v2/internal/slice"
 )
 
-func TestSpawnOption(t *testing.T) {
-	mailbox := NewUnboundedMailbox()
-	config := &spawnConfig{}
-	option := WithMailbox(mailbox)
-	option.Apply(config)
-	require.Equal(t, &spawnConfig{mailbox: mailbox}, config)
-	strategy := NewSupervisorStrategy(PanicError{}, NewStopDirective())
-	option = WithSupervisorStrategies(strategy)
-	option.Apply(config)
-	require.Equal(t, &spawnConfig{mailbox: mailbox, supervisorStrategies: []*SupervisorStrategy{strategy}}, config)
+// pidValue represents the data stored in each
+// node of the actors Tree
+type pidValue struct {
+	data *PID
 }
 
-func TestNewSpawnConfig(t *testing.T) {
-	config := newSpawnConfig()
-	require.NotNil(t, config)
-	require.Nil(t, config.mailbox)
+// newPidValue creates an instance of pidValue
+func newPidValue(data *PID) *pidValue {
+	return &pidValue{data: data}
+}
+
+// Value returns the actual pidValue value
+func (v *pidValue) Value() *PID {
+	return v.data
+}
+
+// pidNode represents a single actor node
+// in the actors Tree
+type pidNode struct {
+	ID          string
+	value       atomic.Pointer[pidValue]
+	Descendants *slice.ThreadSafe[*pidNode]
+	Watchers    *slice.ThreadSafe[*pidNode]
+	Watchees    *slice.ThreadSafe[*pidNode]
+}
+
+// SetValue sets a node value
+func (x *pidNode) SetValue(v *pidValue) {
+	x.value.Store(v)
+}
+
+// GetValue returns the underlying value of the node
+func (x *pidNode) GetValue() *PID {
+	v := x.value.Load()
+	return v.Value()
 }
