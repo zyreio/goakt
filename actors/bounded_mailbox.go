@@ -64,7 +64,7 @@ func (mailbox *BoundedMailbox) Dequeue() (msg *ReceiveContext) {
 }
 
 func (mailbox *BoundedMailbox) notifyWaitingEmpty() {
-	if len(mailbox.waitingEmpty) > 0 {
+	if mailbox.IsEmpty() && len(mailbox.waitingEmpty) > 0 {
 		for _, ch := range mailbox.waitingEmpty {
 			select {
 			case ch <- struct{}{}:
