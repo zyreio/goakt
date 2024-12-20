@@ -31,7 +31,8 @@ import (
 // BoundedMailbox defines a bounded mailbox using ring buffer queue
 // This mailbox is thread-safe
 type BoundedMailbox struct {
-	underlying *gods.RingBuffer
+	underlying   *gods.RingBuffer
+	waitingEmpty []chan struct{}
 }
 
 // enforce compilation error
@@ -40,7 +41,8 @@ var _ Mailbox = (*BoundedMailbox)(nil)
 // NewBoundedMailbox creates a new instance BoundedMailbox
 func NewBoundedMailbox(capacity int) *BoundedMailbox {
 	return &BoundedMailbox{
-		underlying: gods.NewRingBuffer(uint64(capacity)),
+		underlying:   gods.NewRingBuffer(uint64(capacity)),
+		waitingEmpty: make([]chan struct{}, 0),
 	}
 }
 
@@ -57,12 +59,31 @@ func (mailbox *BoundedMailbox) Dequeue() (msg *ReceiveContext) {
 		item, _ := mailbox.underlying.Get()
 		return item.(*ReceiveContext)
 	}
+	if len(mailbox.waitingEmpty) > 0 {
+		for _, ch := range mailbox.waitingEmpty {
+			select {
+			case ch <- struct{}{}:
+			default:
+			}
+		}
+		mailbox.waitingEmpty = make([]chan struct{}, 0)
+	}
 	return nil
+}
+
+func (mailbox *BoundedMailbox) WaitEmpty() chan struct{} {
+	ch := make(chan struct{})
+	mailbox.waitingEmpty = append(mailbox.waitingEmpty, ch)
+	return ch
 }
 
 // IsEmpty returns true when the mailbox is empty
 func (mailbox *BoundedMailbox) IsEmpty() bool {
 	return mailbox.underlying.Len() == 0
+}
+
+func (mailbox *BoundedMailbox) IsFull() bool {
+	return mailbox.underlying.Len() == mailbox.underlying.Cap()
 }
 
 // Len returns queue length
