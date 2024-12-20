@@ -234,6 +234,10 @@ func (pid *PID) ID() string {
 	return pid.Address().String()
 }
 
+func (pid *PID) Mailbox() Mailbox {
+	return pid.mailbox
+}
+
 // Name returns the actor given name
 func (pid *PID) Name() string {
 	return pid.Address().Name()
