@@ -25,6 +25,8 @@
 package actors
 
 import (
+	"sync"
+
 	gods "github.com/Workiva/go-datastructures/queue"
 )
 
@@ -32,6 +34,7 @@ import (
 // This mailbox is thread-safe
 type BoundedMailbox struct {
 	underlying   *gods.RingBuffer
+	waitingMutex sync.Mutex
 	waitingEmpty []chan struct{}
 }
 
@@ -64,6 +67,8 @@ func (mailbox *BoundedMailbox) Dequeue() (msg *ReceiveContext) {
 }
 
 func (mailbox *BoundedMailbox) notifyWaitingEmpty() {
+	mailbox.waitingMutex.Lock()
+	defer mailbox.waitingMutex.Unlock()
 	if mailbox.IsEmpty() && len(mailbox.waitingEmpty) > 0 {
 		for _, ch := range mailbox.waitingEmpty {
 			select {
@@ -76,6 +81,8 @@ func (mailbox *BoundedMailbox) notifyWaitingEmpty() {
 }
 
 func (mailbox *BoundedMailbox) WaitEmpty() chan struct{} {
+	mailbox.waitingMutex.Lock()
+	defer mailbox.waitingMutex.Unlock()
 	ch := make(chan struct{})
 	mailbox.waitingEmpty = append(mailbox.waitingEmpty, ch)
 	return ch
