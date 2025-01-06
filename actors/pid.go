@@ -1606,6 +1606,15 @@ func (pid *PID) notifyParent(err error) {
 	}
 }
 
+func (pid *PID) DeadletterCount() int64 {
+	deadletters := pid.system.getDeadletters()
+	resp, err := deadletters.Ask(context.Background(), deadletters, &internalpb.GetDeadlettersCount{}, time.Second*1)
+	if err != nil {
+		panic(err)
+	}
+	return resp.(*internalpb.DeadlettersCount).GetTotalCount()
+}
+
 // toDeadletters sends message to deadletters synthetic actor
 func (pid *PID) toDeadletters(receiveCtx *ReceiveContext, err error) {
 	// the message is lost
