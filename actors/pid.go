@@ -1608,7 +1608,7 @@ func (pid *PID) notifyParent(err error) {
 
 func (pid *PID) DeadletterCount() int64 {
 	deadletters := pid.system.getDeadletters()
-	resp, err := deadletters.Ask(context.Background(), deadletters, &internalpb.GetDeadlettersCount{}, time.Second*1)
+	resp, err := pid.Ask(context.Background(), deadletters, &internalpb.GetDeadlettersCount{}, time.Second*1)
 	if err != nil {
 		panic(err)
 	}
