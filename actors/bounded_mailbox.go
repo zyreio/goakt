@@ -58,7 +58,7 @@ func (mailbox *BoundedMailbox) Enqueue(msg *ReceiveContext) error {
 // Dequeue takes the mail from the mailbox
 // It returns nil when the mailbox is empty
 func (mailbox *BoundedMailbox) Dequeue() (msg *ReceiveContext) {
-	defer mailbox.notifyWaitingEmpty()
+	// defer mailbox.notifyWaitingEmpty()
 	if mailbox.underlying.Len() > 0 {
 		item, _ := mailbox.underlying.Get()
 		return item.(*ReceiveContext)
